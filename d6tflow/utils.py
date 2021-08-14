@@ -52,7 +52,7 @@ def traverse(t, path=None):
 
 def to_parquet(df, path, **kwargs):
     opts = {**{'compression': 'gzip', 'engine': 'pyarrow'}, **kwargs}
-    pathlib.Path(path).parent.mkdir(exists_ok=True)
+    pathlib.Path(path).parent.mkdir(exist_ok=True)
     df.to_parquet(path, **opts)
 
 
