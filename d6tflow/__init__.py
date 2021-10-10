@@ -120,7 +120,8 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
         raise RuntimeError('Exception found running flow, check trace. For more details see https://d6tflow.readthedocs.io/en/latest/run.html#debugging-failures')
 
     if execution_summary:
-        print(result.summary_text)
+        if not isinstance(result, bool):
+            print(result.summary_text)
     return result
 
 def taskflow_upstream(task, only_complete=False):
