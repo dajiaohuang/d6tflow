@@ -360,6 +360,8 @@ class Workflow(object):
         """
         return self.get_task(task).outputLoad(keys=keys, as_dict=as_dict, cached=cached)
 
+    def output(self, task=None):
+        return self.get_task(task).output()
 
     def outputLoadMeta(self, task=None):
         return self.get_task(task).outputLoadMeta()
@@ -385,7 +387,7 @@ class Workflow(object):
         return data_dict
 
 
-    def reset(self, task, confirm=False):
+    def reset(self, task=None, confirm=False):
         task_inst = self.get_task(task)
         return task_inst.reset(confirm)
 
