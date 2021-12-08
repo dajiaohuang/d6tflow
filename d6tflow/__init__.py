@@ -199,8 +199,9 @@ def invalidate_upstream(task, confirm=False):
         print('no tasks to invalidate')
         return True
     if confirm:
-        print('Compeleted tasks to invalidate:')
-        print(tasks)
+        print('Completed tasks to invalidate:')
+        for t in tasks:
+            print(t)
         c = input('Confirm invalidating tasks (y/n)')
     else:
         c = 'y'
@@ -224,8 +225,9 @@ def invalidate_downstream(task, task_downstream, confirm=False):
         print('no tasks to invalidate')
         return True
     if confirm:
-        print('Compeleted tasks to invalidate:')
-        print(tasks)
+        print('Completed tasks to invalidate:')
+        for t in tasks:
+            print(t)
         c = input('Confirm invalidating tasks (y/n)')
     else:
         c = 'y'
@@ -393,7 +395,7 @@ class Workflow(object):
         return task_inst.reset(confirm)
 
 
-    def reset_downstream(self, task, task_downstream, confirm=False):
+    def reset_downstream(self, task, task_downstream=None, confirm=False):
         """
         Invalidate all downstream tasks in a flow.
 
@@ -406,7 +408,7 @@ class Workflow(object):
         """
         task_inst = self.get_task(task)
         task_downstream_inst = self.get_task(task_downstream)
-        return taskflow_downstream(task_inst, task_downstream_inst, confirm)
+        return invalidate_downstream(task_inst, task_downstream_inst, confirm)
 
 
     def reset_upstream(self, task, confirm=False):
