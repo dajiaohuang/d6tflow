@@ -13,6 +13,7 @@ from luigi.parameter import (
 )
 
 import d6tcollect
+
 d6tcollect.submit = True
 
 import d6tflow.targets, d6tflow.tasks, d6tflow.settings
@@ -21,6 +22,7 @@ from d6tflow.cache import data as data
 import d6tflow.cache
 
 print('Welcome to d6tflow! For Q&A see https://github.com/d6t/d6tflow')
+
 
 def set_dir(dir=None):
     """
@@ -44,6 +46,7 @@ def set_dir(dir=None):
     d6tflow.settings.isinit = True
     return dirpath
 
+
 @d6tcollect.collect
 def preview(tasks, indent='', last=True, show_params=True, clip_params=False):
     """
@@ -56,11 +59,13 @@ def preview(tasks, indent='', last=True, show_params=True, clip_params=False):
     if not isinstance(tasks, (list,)):
         tasks = [tasks]
     for t in tasks:
-        print(d6tflow.utils.print_tree(t, indent=indent, last=last, show_params= show_params, clip_params=clip_params))
+        print(d6tflow.utils.print_tree(t, indent=indent, last=last, show_params=show_params, clip_params=clip_params))
     print('\n ===== Luigi Execution Preview ===== \n')
 
+
 @d6tcollect.collect
-def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1, abort=True, execution_summary=None, **kwargs):
+def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1, abort=True,
+        execution_summary=None, **kwargs):
     """
     Run tasks locally. See luigi.build for additional details
 
@@ -79,24 +84,24 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
     if not isinstance(tasks, (list,)):
         tasks = [tasks]
 
-    #if forced_all_upstream is true we are going to force run tasks anyway
+    # if forced_all_upstream is true we are going to force run tasks anyway
     # in the second if condition.
     # So in this case we are going to skip running forced tasks.
     if forced_all and not forced_all_upstream:
         forced = tasks
     if forced_all_upstream:
         for t in tasks:
-            invalidate_upstream(t,confirm=confirm)
+            invalidate_upstream(t, confirm=confirm)
     if forced is not None:
         if not isinstance(forced, (list,)):
             forced = [forced]
         invalidate = []
         for tf in forced:
             for tup in tasks:
-                invalidate.append(d6tflow.taskflow_downstream(tf,tup))
+                invalidate.append(d6tflow.taskflow_downstream(tf, tup))
         invalidate = set().union(*invalidate)
         invalidate = {t for t in invalidate if t.complete()}
-        if len(invalidate)>0:
+        if len(invalidate) > 0:
             if confirm:
                 print('Forced tasks', invalidate)
                 c = input('Confirm invalidating forced tasks (y/n)')
@@ -108,21 +113,23 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
                 return None
 
     execution_summary = execution_summary if execution_summary is not None else d6tflow.settings.execution_summary
-    opts = {**{'workers':workers, 'local_scheduler':True, 'log_level':d6tflow.settings.log_level},**kwargs}
-    if execution_summary and luigi.__version__>='3.0.0':
-        opts['detailed_summary']=True
+    opts = {**{'workers': workers, 'local_scheduler': True, 'log_level': d6tflow.settings.log_level}, **kwargs}
+    if execution_summary and luigi.__version__ >= '3.0.0':
+        opts['detailed_summary'] = True
     result = luigi.build(tasks, **opts)
     if isinstance(result, bool):
         success = result
     else:
         success = result.scheduling_succeeded
     if abort and not success:
-        raise RuntimeError('Exception found running flow, check trace. For more details see https://d6tflow.readthedocs.io/en/latest/run.html#debugging-failures')
+        raise RuntimeError(
+            'Exception found running flow, check trace. For more details see https://d6tflow.readthedocs.io/en/latest/run.html#debugging-failures')
 
     if execution_summary:
         if not isinstance(result, bool):
             print(result.summary_text)
     return result
+
 
 def taskflow_upstream(task, only_complete=False):
     """
@@ -138,6 +145,7 @@ def taskflow_upstream(task, only_complete=False):
         tasks = [t for t in tasks if t.complete()]
     return tasks
 
+
 def taskflow_downstream(task, task_downstream, only_complete=False):
     """
     Get all downstream outputs for a task
@@ -152,6 +160,7 @@ def taskflow_downstream(task, task_downstream, only_complete=False):
         tasks = {t for t in tasks if t.complete()}
     return tasks
 
+
 def invalidate_all(confirm=False):
     """
     Invalidate all tasks by deleting all files in data directory
@@ -162,6 +171,7 @@ def invalidate_all(confirm=False):
     """
     # record all tasks that run and their output vs files present
     raise NotImplementedError()
+
 
 def invalidate_orphans(confirm=False):
     """
@@ -174,6 +184,7 @@ def invalidate_orphans(confirm=False):
     # record all tasks that run and their output vs files present
     raise NotImplementedError()
 
+
 def show(task):
     """
     Show task execution status
@@ -182,6 +193,7 @@ def show(task):
         tasks (obj, list): task or list of tasks
     """
     preview(task)
+
 
 def invalidate_upstream(task, confirm=False):
     """
@@ -195,7 +207,7 @@ def invalidate_upstream(task, confirm=False):
 
     """
     tasks = taskflow_upstream(task, only_complete=False)
-    if len(tasks)==0:
+    if len(tasks) == 0:
         print('no tasks to invalidate')
         return True
     if confirm:
@@ -205,8 +217,9 @@ def invalidate_upstream(task, confirm=False):
         c = input('Confirm invalidating tasks (y/n)')
     else:
         c = 'y'
-    if c=='y':
+    if c == 'y':
         [t.invalidate(confirm=False) for t in tasks]
+
 
 def invalidate_downstream(task, task_downstream, confirm=False):
     """
@@ -221,7 +234,7 @@ def invalidate_downstream(task, task_downstream, confirm=False):
 
     """
     tasks = taskflow_downstream(task, task_downstream, only_complete=True)
-    if len(tasks)==0:
+    if len(tasks) == 0:
         print('no tasks to invalidate')
         return True
     if confirm:
@@ -231,27 +244,30 @@ def invalidate_downstream(task, task_downstream, confirm=False):
         c = input('Confirm invalidating tasks (y/n)')
     else:
         c = 'y'
-    if c=='y':
+    if c == 'y':
         [t.invalidate(confirm=False) for t in tasks]
         return True
     else:
         return False
 
+
 def clone_parent(cls):
     warnings.warn("This is replaced with `@d6tflow.requires()`", DeprecationWarning, stacklevel=2)
+
     def requires(self):
         return self.clone_parent()
 
     setattr(cls, 'requires', requires)
     return cls
 
-#Like luigi.utils.inherits but for handling dictionaries
+
+# Like luigi.utils.inherits but for handling dictionaries
 class dict_inherits:
     def __init__(self, *tasks_to_inherit):
         super(dict_inherits, self).__init__()
         if not tasks_to_inherit:
             raise TypeError("tasks_to_inherit cannot be empty")
-        #We know the first arg is a dict.
+        # We know the first arg is a dict.
         self.tasks_to_inherit = tasks_to_inherit[0]
 
     def __call__(self, task_that_inherits):
@@ -262,27 +278,29 @@ class dict_inherits:
                     # If not, add it to the inheriting task
                     setattr(task_that_inherits, param_name, param_obj)
 
-        #adding dictionary functionality
+        # adding dictionary functionality
         def clone_parents_dict(_self, **kwargs):
             return {
                 task_to_inherit: _self.clone(cls=self.tasks_to_inherit[task_to_inherit], **kwargs)
                 for task_to_inherit in self.tasks_to_inherit
             }
+
         task_that_inherits.clone_parents_dict = clone_parents_dict
         return task_that_inherits
 
 
-#Like luigi.utils.requires but for handling dictionaries
+# Like luigi.utils.requires but for handling dictionaries
 class dict_requires:
     def __init__(self, *tasks_to_require):
         super(dict_requires, self).__init__()
         if not tasks_to_require:
             raise TypeError("tasks_to_require cannot be empty")
 
-        self.tasks_to_require = tasks_to_require[0] #Assign the dictionary
+        self.tasks_to_require = tasks_to_require[0]  # Assign the dictionary
 
     def __call__(self, task_that_requires):
         task_that_requires = dict_inherits(self.tasks_to_require)(task_that_requires)
+
         def requires(_self):
             return _self.clone_parents_dict()
 
@@ -290,13 +308,15 @@ class dict_requires:
 
         return task_that_requires
 
+
 def inherits(*tasks_to_inherit):
     if isinstance(tasks_to_inherit[0], dict):
         return dict_inherits(*tasks_to_inherit)
     return luigi_inherits(*tasks_to_inherit)
 
+
 def requires(*tasks_to_require):
-    #Check the type; if a dictionary call our custom requires decorator
+    # Check the type; if a dictionary call our custom requires decorator
     is_dict = isinstance(tasks_to_require[0], dict)
     if is_dict:
         return dict_requires(*tasks_to_require)
@@ -308,11 +328,10 @@ class Workflow(object):
     The class is used to orchestrate tasks and define a task pipeline
     """
 
-    def __init__(self, task = None, params=None, path=None):
+    def __init__(self, task=None, params=None, path=None):
         self.params = {} if params is None else params
-        self.params = self.params if path is None else dict(**self.params,**{'path':path})
+        self.params = self.params if path is None else dict(**self.params, **{'path': path})
         self.default_task = task
-
 
     def preview(self, tasks=None, indent='', last=True, show_params=True, clip_params=False):
         """
@@ -324,10 +343,10 @@ class Workflow(object):
         if not isinstance(tasks, (list,)):
             tasks = [tasks]
         tasks_inst = [self.get_task(x) for x in tasks]
-        return preview(tasks = tasks_inst, indent = indent, last = last, show_params = show_params, clip_params = clip_params)
+        return preview(tasks=tasks_inst, indent=indent, last=last, show_params=show_params, clip_params=clip_params)
 
-
-    def run(self,tasks=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1, abort=True, execution_summary=None, **kwargs):
+    def run(self, tasks=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1,
+            abort=True, execution_summary=None, **kwargs):
         """
         Run tasks with the workflow parameters. See luigi.build for additional details
 
@@ -346,8 +365,8 @@ class Workflow(object):
         if not isinstance(tasks, (list,)):
             tasks = [tasks]
         tasks_inst = [self.get_task(x) for x in tasks]
-        return run(tasks_inst, forced=forced, forced_all=forced_all, forced_all_upstream=forced_all_upstream, confirm=confirm, workers=workers, abort=abort, execution_summary=execution_summary, **kwargs)
-
+        return run(tasks_inst, forced=forced, forced_all=forced_all, forced_all_upstream=forced_all_upstream,
+                   confirm=confirm, workers=workers, abort=abort, execution_summary=execution_summary, **kwargs)
 
     def outputLoad(self, task=None, keys=None, as_dict=False, cached=False):
         """
@@ -369,7 +388,6 @@ class Workflow(object):
     def outputLoadMeta(self, task=None):
         return self.get_task(task).outputLoadMeta()
 
-
     def outputLoadAll(self, task=None, keys=None, as_dict=False, cached=False):
         """
         Load all output from task with the workflow parameters
@@ -389,11 +407,9 @@ class Workflow(object):
             data_dict[type(task).__name__] = task.outputLoad(keys=keys, as_dict=as_dict, cached=cached)
         return data_dict
 
-
     def reset(self, task=None, confirm=False):
         task_inst = self.get_task(task)
         return task_inst.reset(confirm)
-
 
     def reset_downstream(self, task, task_downstream=None, confirm=False):
         """
@@ -410,11 +426,9 @@ class Workflow(object):
         task_downstream_inst = self.get_task(task_downstream)
         return invalidate_downstream(task_inst, task_downstream_inst, confirm)
 
-
     def reset_upstream(self, task, confirm=False):
         task_inst = self.get_task(task)
         return invalidate_upstream(task_inst, confirm)
-
 
     def set_default(self, task):
         """
@@ -425,8 +439,7 @@ class Workflow(object):
         """
         self.default_task = task
 
-
-    def get_task(self, task = None):
+    def get_task(self, task=None):
         """
         Get task with the workflow parameters
 
@@ -449,7 +462,7 @@ class WorkflowMulti(object):
 
     """
 
-    def __init__(self, task = None, params = None, path=None):
+    def __init__(self, task=None, params=None, path=None):
         self.params = params
         if params is not None and type(params) not in [dict, list]:
             raise Exception("Params has to be a dictionary with key defining the flow name or a list")
@@ -457,16 +470,16 @@ class WorkflowMulti(object):
             if type(list(params.values())[0]) == list:
                 self.params = d6tflow.utils.generate_exps_for_multi_param(params)
         if type(params) == list:
-            params = {i:v for i,v in enumerate(params)}
+            params = {i: v for i, v in enumerate(params)}
             self.params = params
-        if params is None or len(params.keys())==0:
+        if params is None or len(params.keys()) == 0:
             raise Exception("Need to pass task parameters or use d6tflow.Workflow")
         self.default_task = task
         if params is not None:
             self.workflow_objs = {k: Workflow(task=task, params=v, path=path) for k, v in self.params.items()}
 
-
-    def run(self, flow = None, tasks=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1, abort=True, execution_summary=None, **kwargs):
+    def run(self, flow=None, tasks=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False,
+            workers=1, abort=True, execution_summary=None, **kwargs):
         """
         Run tasks with the workflow parameters for a flow. See luigi.build for additional details
 
@@ -486,18 +499,18 @@ class WorkflowMulti(object):
 
         if flow is not None:
             return self.workflow_objs[flow].run(tasks=tasks, forced=forced, forced_all=forced_all,
-                                           forced_all_upstream=forced_all_upstream, confirm=confirm, workers=workers,
-                                           abort=abort,
-                                           execution_summary=execution_summary, **kwargs)
+                                                forced_all_upstream=forced_all_upstream, confirm=confirm,
+                                                workers=workers,
+                                                abort=abort,
+                                                execution_summary=execution_summary, **kwargs)
         result = {}
         for exp_name in self.params.keys():
             result[exp_name] = self.workflow_objs[exp_name].run(tasks, forced, forced_all, forced_all_upstream,
-                                                                  confirm, workers, abort,
-                                                                  execution_summary, **kwargs)
+                                                                confirm, workers, abort,
+                                                                execution_summary, **kwargs)
         return result
 
-
-    def outputLoad(self, flow = None, task=None, keys=None, as_dict=False, cached=False):
+    def outputLoad(self, flow=None, task=None, keys=None, as_dict=False, cached=False):
         """
         Load output from task with the workflow parameters for a flow
 
@@ -517,7 +530,7 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoad(task, keys, as_dict, cached)
         return data
 
-    def outputLoadMeta(self, flow = None, task=None):
+    def outputLoadMeta(self, flow=None, task=None):
         if flow is not None:
             return self.workflow_objs[flow].outputLoadMeta(task)
         data = {}
@@ -525,8 +538,7 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoadMeta(task)
         return data
 
-
-    def outputLoadAll(self, flow = None, task=None, keys=None, as_dict=False, cached=False):
+    def outputLoadAll(self, flow=None, task=None, keys=None, as_dict=False, cached=False):
         """
         Load all output from task with the workflow parameters for a flow
 
@@ -546,19 +558,17 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoadAll(task, keys, as_dict, cached)
         return data
 
-
-    def reset(self, flow = None, task=None, confirm=False):
+    def reset(self, flow=None, task=None, confirm=False):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
         return {self.workflow_objs[exp_name].reset(task, confirm) for exp_name in self.params.keys()}
 
-    def reset_upstream(self, flow = None, task=None, confirm=False):
+    def reset_upstream(self, flow=None, task=None, confirm=False):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
         return {self.workflow_objs[exp_name].reset_upstream(task, confirm) for exp_name in self.params.keys()}
 
-
-    def preview(self, flow = None, tasks = None, indent='', last=True, show_params=True, clip_params=False):
+    def preview(self, flow=None, tasks=None, indent='', last=True, show_params=True, clip_params=False):
         """
         Preview task flows with the workflow parameters for a flow
 
@@ -572,9 +582,9 @@ class WorkflowMulti(object):
             return self.workflow_objs[flow].preview(tasks)
         data = {}
         for exp_name in self.params.keys():
-            data[exp_name] = self.workflow_objs[exp_name].preview(tasks = tasks, indent = indent, last = last, show_params=show_params, clip_params=clip_params)
+            data[exp_name] = self.workflow_objs[exp_name].preview(tasks=tasks, indent=indent, last=last,
+                                                                  show_params=show_params, clip_params=clip_params)
         return data
-
 
     def set_default(self, task):
         """
@@ -587,8 +597,7 @@ class WorkflowMulti(object):
         for exp_name in self.params.keys():
             self.workflow_objs[exp_name].set_default(task)
 
-
-    def get_task(self, flow = None, task = None):
+    def get_task(self, flow=None, task=None):
         """
         Get task with the workflow parameters for a flow
 
