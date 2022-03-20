@@ -382,6 +382,9 @@ class Workflow(object):
         """
         return self.get_task(task).outputLoad(keys=keys, as_dict=as_dict, cached=cached)
 
+    def complete(self, task=None):
+        return self.get_task(task).complete()
+
     def output(self, task=None):
         return self.get_task(task).output()
 
@@ -478,7 +481,7 @@ class WorkflowMulti(object):
         if params is not None:
             self.workflow_objs = {k: Workflow(task=task, params=v, path=path) for k, v in self.params.items()}
 
-    def run(self, flow=None, tasks=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False,
+    def run(self, tasks=None, flow=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False,
             workers=1, abort=True, execution_summary=None, **kwargs):
         """
         Run tasks with the workflow parameters for a flow. See luigi.build for additional details
@@ -510,7 +513,7 @@ class WorkflowMulti(object):
                                                                 execution_summary, **kwargs)
         return result
 
-    def outputLoad(self, flow=None, task=None, keys=None, as_dict=False, cached=False):
+    def outputLoad(self, task=None, flow=None, keys=None, as_dict=False, cached=False):
         """
         Load output from task with the workflow parameters for a flow
 
@@ -530,7 +533,7 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoad(task, keys, as_dict, cached)
         return data
 
-    def outputLoadMeta(self, flow=None, task=None):
+    def outputLoadMeta(self, task=None, flow=None):
         if flow is not None:
             return self.workflow_objs[flow].outputLoadMeta(task)
         data = {}
@@ -538,7 +541,7 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoadMeta(task)
         return data
 
-    def outputLoadAll(self, flow=None, task=None, keys=None, as_dict=False, cached=False):
+    def outputLoadAll(self, task=None, flow=None, keys=None, as_dict=False, cached=False):
         """
         Load all output from task with the workflow parameters for a flow
 
@@ -558,17 +561,17 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoadAll(task, keys, as_dict, cached)
         return data
 
-    def reset(self, flow=None, task=None, confirm=False):
+    def reset(self, task=None, flow=None, confirm=False):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
         return {self.workflow_objs[exp_name].reset(task, confirm) for exp_name in self.params.keys()}
 
-    def reset_upstream(self, flow=None, task=None, confirm=False):
+    def reset_upstream(self, task=None, flow=None, confirm=False):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
         return {self.workflow_objs[exp_name].reset_upstream(task, confirm) for exp_name in self.params.keys()}
 
-    def preview(self, flow=None, tasks=None, indent='', last=True, show_params=True, clip_params=False):
+    def preview(self, tasks=None, flow=None, indent='', last=True, show_params=True, clip_params=False):
         """
         Preview task flows with the workflow parameters for a flow
 
@@ -597,7 +600,7 @@ class WorkflowMulti(object):
         for exp_name in self.params.keys():
             self.workflow_objs[exp_name].set_default(task)
 
-    def get_task(self, flow=None, task=None):
+    def get_task(self, task=None, flow=None):
         """
         Get task with the workflow parameters for a flow
 
@@ -615,3 +618,14 @@ class WorkflowMulti(object):
         if flow is None:
             return {exp_name: self.workflow_objs[exp_name].get_task(task) for exp_name in self.params.keys()}
         return self.workflow_objs[flow].get_task(task)
+
+    def get_flow(self, flow):
+        """
+        Get flow by name
+
+        Args:
+            flow (string): The name of the experiment for which the flow is to be run. If nothing is passed, all the flows are run
+
+        Retuns: An instance of Workflow
+        """
+        return self.workflow_objs[flow]
