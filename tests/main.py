@@ -119,7 +119,7 @@ def test_tasks(cleanup):
     t2.outputLoad(as_dict=True)['df2'].equals(dfc2)
     df2, df4 = t2.outputLoad()
     df2.equals(dfc2)
-    df2, = t2.outputLoad(keys=['df2'])
+    df2 = t2.outputLoad(keys=['df2'])
     df2.equals(dfc2)
 
     # test inputs
@@ -327,7 +327,7 @@ def test_functional_Flow():
     flow.run([use_data, get_data0], forced_all_upstream=True, confirm=False, params={'multiplier':42})
     flow.run(use_data, forced_all_upstream=True, confirm=False, params={'multiplier':42})
     dfo = pd.DataFrame({'a':range(4)})
-    assert flow.outputLoad(use_data)[0].equals(dfo)
+    assert flow.outputLoad(use_data).equals(dfo)
     
 def test_params(cleanup):
     class TaskParam(d6tflow.tasks.TaskCache):
@@ -335,11 +335,11 @@ def test_params(cleanup):
         def run(self):
             self.save(pd.DataFrame({'a':range(self.nrows)}))
 
-    t1 = TaskParam(); t2 = TaskParam(nrows=20);
-    assert not t1.complete(); assert not t2.complete();
+    t1 = TaskParam(); t2 = TaskParam(nrows=20)
+    assert not t1.complete(); assert not t2.complete()
 
     t1.run()
-    assert t1.complete(); assert not t2.complete();
+    assert t1.complete(); assert not t2.complete()
 
 def test_external(cleanup):
     class Task2(d6tflow.tasks.TaskPqPandas):
@@ -356,11 +356,11 @@ def test_external(cleanup):
 #********************************************
 def test_execute(cleanup):
     # execute
-    t1=Task1(); t2=Task2();t3=Task3();
+    t1=Task1(); t2=Task2();t3=Task3()
     [t.reset(confirm=False) for t in [t1,t2,t3]]
     d6tflow.run(t3)
     assert all(t.complete() for t in [t1,t2,t3])
-    t1.reset(confirm=False); t2.reset(confirm=False);
+    t1.reset(confirm=False); t2.reset(confirm=False)
     assert not t3.complete() # cascade upstream
     d6tflow.settings.check_dependencies=False
     assert t3.complete() # no cascade upstream
@@ -418,7 +418,7 @@ def test_execute(cleanup):
     assert not all(t.complete() for t in [t1,t2,t3])
 
 def test_preview():
-    t1=Task1(); t2=Task2();t3=Task3();
+    t1=Task1(); t2=Task2();t3=Task3()
     d6tflow.invalidate_upstream(t3, confirm=False)
 
     import io

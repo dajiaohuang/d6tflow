@@ -14,7 +14,6 @@ class TaskGetData(d6tflow.tasks.TaskPqPandas):  # save dataframe as parquet
         df_train['y'] = ds.target
         self.save(df_train) # quickly save dataframe
 
-
 @d6tflow.requires(TaskGetData) # define dependency
 class TaskPreprocess(d6tflow.tasks.TaskPqPandas):
     do_preprocess = d6tflow.BoolParameter(default=True) # parameter for preprocessing yes/no
@@ -41,7 +40,6 @@ class TaskTrain(d6tflow.tasks.TaskPickle): # save output as pickle
         model.fit(df_train.drop('y',1), df_train['y'])
         self.save(model)
 
-
 class Task1(d6tflow.tasks.TaskCache):
     param1 = d6tflow.IntParameter(default=0)
 
@@ -50,7 +48,6 @@ class Task1(d6tflow.tasks.TaskCache):
 
 
 class TestWorkflow:
-
 
     def test_single_flow_preview(self):
         flow = d6tflow.Workflow(params = {'do_preprocess': False})
@@ -164,7 +161,6 @@ class TestWorkflow:
         params = {'param1': 1}
         flow = d6tflow.Workflow(params = params, task=Task1)
         assert flow.get_task().param_kwargs['param1'] == params['param1']
-
 
 class TestWorkflowMulti:
 
@@ -285,3 +281,73 @@ class TestWorkflowMulti:
         outputs = flow2.outputLoadAll()
         assert outputs[1]['Task1'] == Task1(**params).outputLoad()
         assert outputs[2]['Task1'] == Task1(**params2).outputLoad()
+
+
+# Path Test
+class PathTask1(d6tflow.tasks.TaskCache):
+
+    def run(self):
+        df = pd.DataFrame({'a': range(3)})
+        self.save(df)  # quickly save dataframe
+
+@d6tflow.requires(PathTask1)
+class PathTask2(d6tflow.tasks.TaskPqPandas):
+    path = 'data/data2_changed'
+
+    def run(self):
+        df1 = self.inputLoad() * 2
+        self.save(df1)
+
+@d6tflow.requires(PathTask2)
+class PathTask3(d6tflow.tasks.TaskPqPandas):
+
+    def run(self):
+        df2 = self.inputLoad() * 3
+        self.save(df2)
+
+class TestWorkflowPath:
+    '''
+    tasks.output().path is correct
+    task2.outputLoad() is task1.outputLoad() * 2
+    after reset no output in 'data/data2_changed/task2
+    '''
+    def test_workflow_df_and_path_correct(self):
+        import os
+        # Execute task including all its dependencies
+        flow = d6tflow.Workflow(PathTask3)
+        flow.run()
+        
+        # DF
+        df_1 = flow.outputLoad(PathTask1)
+        df_2 = flow.outputLoad(PathTask2)
+        df_3 = flow.outputLoad(PathTask3)
+        assert df_1.equals(pd.DataFrame({'a': range(3)}))
+        assert df_2.equals(pd.DataFrame({'a': range(3)}) * 2)
+        assert df_2.equals(df_1 * 2)
+        assert df_3.equals(pd.DataFrame({'a': range(3)}) * 6)
+
+        # Complete
+        is_complete = flow.complete()
+        assert is_complete
+
+        # Path
+        path_1 = flow.output(PathTask1).path
+        path_2 = flow.output(PathTask2).path
+        path_3 = flow.output(PathTask3).path
+        assert str(path_1) == "data/PathTask1/PathTask1__99914b932b-data.cache"
+        # Should be a POSIXPATH
+        assert str(path_2) == "data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet"
+        assert str(path_3) == "data/PathTask3/PathTask3__99914b932b-data.parquet"
+        # Dir is not Empty
+        dir = os.listdir("data/data2_changed/PathTask2")
+        assert len(dir) == 1
+        dir = os.listdir("data/PathTask3")
+        assert len(dir) == 1
+
+        # Reset
+        flow.reset(PathTask2)
+        flow.reset(PathTask3)
+        dir = os.listdir("data/data2_changed/PathTask2")
+        assert len(dir) == 0
+        dir = os.listdir("data/PathTask3")
+        assert len(dir) == 0

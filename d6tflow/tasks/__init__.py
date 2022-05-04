@@ -39,7 +39,11 @@ class TaskData(luigi.Task):
         kwargs_ = {k: v for k, v in kwargs.items(
         ) if k in self.get_param_names(include_significant=True)}
         super().__init__(*args, **kwargs_)
-        self.path = path
+        # Check if Child Has Path Var
+        if hasattr(self, 'path'):
+            self.path = getattr(self, 'path', None)
+        else:
+            self.path = path
 
     @classmethod
     def get_param_values(cls, params, args, kwargs):
@@ -78,7 +82,10 @@ class TaskData(luigi.Task):
                 [t.complete() for t in luigi.task.flatten(self.requires())])
         return complete
 
+    # Private Get Path Function
+    # TODO: Check if we Refactor
     def _getpath(self, dirpath, k, subdir=True):
+        # Get Path
         tidroot = getattr(self, 'target_dir', self.task_id.split('_')[0])
         fname = '{}-{}'.format(self.task_id, k) if (settings.save_with_param and getattr(
             self, 'save_attrib', True)) else '{}'.format(k)
@@ -87,18 +94,22 @@ class TaskData(luigi.Task):
             path = dirpath / tidroot / fname
         else:
             path = dirpath / fname
+
         return path
 
     def output(self):
         """
         Similar to luigi task output
         """
-        # output dir, check if using d6tpipe
+        # Get Output dir
+        # Check if using d6tpipe
         if hasattr(self, 'pipename'):
             import d6tflow.pipes
             dirpath = d6tflow.pipes.get_dirpath(self.pipename)
+        # Class has set Path
         elif self.path is not None:
             dirpath = pathlib.Path(self.path)
+        # Default Settings
         else:
             dirpath = settings.dirpath
 
@@ -175,14 +186,23 @@ class TaskData(luigi.Task):
         if not self.complete():
             raise RuntimeError(
                 'Cannot load, task not complete, run flow first')
+
+        # Check Keys
         keys = self.persist if keys is None else keys
         if self.persist == ['data']:  # 1 data shortcut
             return self.output().load()
-
+        # Get Data
         data = {k: v.load(cached)
                 for k, v in self.output().items() if k in keys}
+        
+        # Return As List
         if not as_dict:
             data = list(data.values())
+        # If Keys len == 1
+        if type(keys) is list and len(keys) == 1 or type(keys) is not list:
+             data = data[0]
+        
+        # Return
         return data
 
     def save(self, data, **kwargs):
