@@ -4,6 +4,7 @@ import d6tflow
 import sklearn, sklearn.datasets, sklearn.svm, sklearn.linear_model
 import pandas as pd
 import numpy as np
+from pathlib import Path, PosixPath
 
 # define workflow
 class TaskGetData(d6tflow.tasks.TaskPqPandas):  # save dataframe as parquet
@@ -162,6 +163,7 @@ class TestWorkflow:
         flow = d6tflow.Workflow(params = params, task=Task1)
         assert flow.get_task().param_kwargs['param1'] == params['param1']
 
+
 class TestWorkflowMulti:
 
     def test_preview_single_flow(self):
@@ -305,14 +307,22 @@ class PathTask3(d6tflow.tasks.TaskPqPandas):
         df2 = self.inputLoad() * 3
         self.save(df2)
 
-class TestWorkflowPath:
+class PathTaskMultiOutput(d6tflow.tasks.TaskPqPandas):
+    persist = ['xx','yy']
+
+    def run(self):
+        ds = sklearn.datasets.load_boston()
+        df_trainX = pd.DataFrame(ds.data, columns=ds.feature_names)
+        df_trainY = pd.DataFrame(ds.target, columns=['target'])
+        self.save({'xx': df_trainX, 'yy': df_trainY}) # persist/cache training data
+
+class TestWorkflowOutput:
     '''
     tasks.output().path is correct
     task2.outputLoad() is task1.outputLoad() * 2
     after reset no output in 'data/data2_changed/task2
     '''
     def test_workflow_df_and_path_correct(self):
-        import os
         # Execute task including all its dependencies
         flow = d6tflow.Workflow(PathTask3)
         flow.run()
@@ -339,15 +349,89 @@ class TestWorkflowPath:
         assert str(path_2) == "data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet"
         assert str(path_3) == "data/PathTask3/PathTask3__99914b932b-data.parquet"
         # Dir is not Empty
-        dir = os.listdir("data/data2_changed/PathTask2")
+        p = Path('.')
+        dir = list(p.glob('data/data2_changed/PathTask2/*'))
         assert len(dir) == 1
-        dir = os.listdir("data/PathTask3")
+        dir = list(p.glob('data/PathTask3/*'))
+        # dir = os.listdir("data/PathTask3")
         assert len(dir) == 1
 
         # Reset
         flow.reset(PathTask2)
         flow.reset(PathTask3)
-        dir = os.listdir("data/data2_changed/PathTask2")
+        dir = list(p.glob('data/data2_changed/PathTask2/*'))
         assert len(dir) == 0
-        dir = os.listdir("data/PathTask3")
+        dir = list(p.glob('data/PathTask3/*'))
         assert len(dir) == 0
+
+    def test_workflow_outputPath(self):
+        # Execute task including all its dependencies
+        flow = d6tflow.Workflow(PathTask3)
+        flow.run()
+
+        path_1 = flow.outputPath(PathTask1)
+        path_2 = flow.outputPath(PathTask2)
+        assert str(path_1) == "data/PathTask1/PathTask1__99914b932b-data.cache"
+        assert str(path_2) == "data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet"
+
+        # Test Multi Output
+        # Execute task including all its dependencies
+        flow = d6tflow.Workflow(PathTaskMultiOutput)
+        flow.run()
+
+        multi_path_1 = flow.outputPath(PathTaskMultiOutput)
+        assert str(multi_path_1['xx']) == "data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet"
+        assert str(multi_path_1['yy']) == "data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet"
+
+    def test_workflow_multi_outputPath(self):
+        flow_multi = d6tflow.WorkflowMulti(params = {'experiment1': {'do_preprocess': False}, 'experiment2': {'do_preprocess': True}},
+                                  task=PathTask3)
+        flow_multi.run()
+
+        path_1 = flow_multi.outputPath(PathTask1)
+        path_2 = flow_multi.outputPath(PathTask2)
+        assert path_1 == {
+            'experiment1': 'data/PathTask1/PathTask1__99914b932b-data.cache', 
+            'experiment2': 'data/PathTask1/PathTask1__99914b932b-data.cache'
+        }
+        assert path_2 == {
+            'experiment1': PosixPath('data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet'), 
+            'experiment2': PosixPath('data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet')
+        }
+
+        # Test Multi with Multi Output
+        flow_multi = d6tflow.WorkflowMulti(params = {'experiment1': {'do_preprocess': False}, 'experiment2': {'do_preprocess': True}},
+                                  task=PathTaskMultiOutput)
+        flow_multi.run()
+
+        path_1 = flow_multi.outputPath(PathTaskMultiOutput)
+        assert path_1 == {
+            'experiment1': 
+                {
+                    'xx': PosixPath('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet'),
+                    'yy': PosixPath('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet')
+                }, 
+            'experiment2': 
+                {
+                    'xx': PosixPath('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet'),
+                    'yy': PosixPath('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet')
+                }
+            }
+
+class TestWorkflowReset:
+    def test_reset_downstream(self):
+        # Execute task including all its dependencies
+        flow = d6tflow.Workflow(PathTask3)
+        flow.run()
+        # Reset
+        flow.reset_downstream(PathTask1)
+        assert not flow.complete()
+
+    def test_reset_downstream_multi(self):
+        # Execute task including all its dependencies
+        flow_multi = d6tflow.WorkflowMulti(params = {'experiment1': {'do_preprocess': True}, 'experiment2': {'do_preprocess': True}},
+                                  task=PathTask3)
+        flow_multi.run()
+        # Reset
+        flow_multi.reset_downstream(PathTask1)
+        # assert not flow_multi.complete()

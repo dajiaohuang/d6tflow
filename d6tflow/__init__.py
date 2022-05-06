@@ -382,6 +382,28 @@ class Workflow(object):
         """
         return self.get_task(task).outputLoad(keys=keys, as_dict=as_dict, cached=cached)
 
+    def outputPath(self, task=None):
+        """
+        Ouputs the Path given a task
+
+        Args:
+            task (class): task class
+
+        Returns: list or dict of all task paths
+        """
+        # Get Output
+        output = self.get_task(task).output()
+
+        # If Output is Dict, we have multiple outputs
+        if type(output) is dict:
+            # Get Paths
+            for output_name, output_target in output.items():
+                output[output_name] = output_target.path
+            
+            return output
+        else:
+            return output.path
+
     def complete(self, task=None):
         return self.get_task(task).complete()
 
@@ -533,6 +555,25 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoad(task, keys, as_dict, cached)
         return data
 
+    def outputPath(self, task=None, flow=None):
+        """
+        Ouputs the Path given a task
+
+        Args:
+            task (class): task class
+            flow (string): The name of the experiment for which the flow is to be run. If nothing is passed, all the flows are run
+
+        Returns: list or dict of all task paths
+        """
+        if flow is not None:
+            return self.workflow_objs[flow].outputPath(task)
+
+        data = {}
+        for exp_name in self.params.keys():
+            data[exp_name] = self.workflow_objs[exp_name].outputPath(task)
+
+        return data
+
     def outputLoadMeta(self, task=None, flow=None):
         if flow is not None:
             return self.workflow_objs[flow].outputLoadMeta(task)
@@ -565,6 +606,11 @@ class WorkflowMulti(object):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
         return {self.workflow_objs[exp_name].reset(task, confirm) for exp_name in self.params.keys()}
+
+    def reset_downstream(self, task=None, flow=None, confirm=False):
+        if flow is not None:
+            return self.workflow_objs[flow].reset(task, confirm)
+        return {self.workflow_objs[exp_name].reset_downstream(task, confirm=confirm) for exp_name in self.params.keys()}
 
     def reset_upstream(self, task=None, flow=None, confirm=False):
         if flow is not None:
