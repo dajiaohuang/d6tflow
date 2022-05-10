@@ -328,9 +328,30 @@ class Workflow(object):
     The class is used to orchestrate tasks and define a task pipeline
     """
 
-    def __init__(self, task=None, params=None, path=None):
+    def __init__(self, task=None, params=None, path=None, env=None):
+        # Set Env 
+        if path is not None and env is not None:
+            path = path + '/env=' + env
+        # Will overide other tasks with this task's main path TODO: Check
+        elif env is not None:
+            import d6tflow.settings as settings
+            path = task.path if hasattr(task, 'path') else settings.dirpath
+            path = str(path) + '/env=' + env
+
+        # Set Params
         self.params = {} if params is None else params
         self.params = self.params if path is None else dict(**self.params, **{'path': path})
+
+        # Set Path if Path is set
+        if path is not None:
+            # Get all paths and change path var for all
+            task_inst = self.get_task(task)
+            tasks = taskflow_upstream(task_inst)
+            # Overide Path of all tasks
+            for temp_task in tasks:
+                # self.get_task(temp_task)
+                temp_task.path = path
+        
         self.default_task = task
 
     def preview(self, tasks=None, indent='', last=True, show_params=True, clip_params=False):
@@ -487,7 +508,7 @@ class WorkflowMulti(object):
 
     """
 
-    def __init__(self, task=None, params=None, path=None):
+    def __init__(self, task=None, params=None, path=None, env=None):
         self.params = params
         if params is not None and type(params) not in [dict, list]:
             raise Exception("Params has to be a dictionary with key defining the flow name or a list")
@@ -501,7 +522,7 @@ class WorkflowMulti(object):
             raise Exception("Need to pass task parameters or use d6tflow.Workflow")
         self.default_task = task
         if params is not None:
-            self.workflow_objs = {k: Workflow(task=task, params=v, path=path) for k, v in self.params.items()}
+            self.workflow_objs = {k: Workflow(task=task, params=v, path=path, env=env) for k, v in self.params.items()}
 
     def run(self, tasks=None, flow=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False,
             workers=1, abort=True, execution_summary=None, **kwargs):

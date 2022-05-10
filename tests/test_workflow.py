@@ -418,6 +418,38 @@ class TestWorkflowOutput:
                 }
             }
 
+    def test_workflow_set_path_and_env(self):
+        # Execute task including all its dependencies
+        flow = d6tflow.Workflow(PathTask3, env='prod')
+        flow.run()
+
+        path_2 = flow.outputPath(PathTask2)
+        path_3 = flow.outputPath(PathTask3)
+        assert str(path_2) == "data/env=prod/PathTask2/PathTask2__99914b932b-data.parquet"
+        assert str(path_3) == "data/env=prod/PathTask3/PathTask3__99914b932b-data.parquet"
+        flow.reset()
+
+        # Execute task including all its dependencies
+        flow = d6tflow.Workflow(PathTask3, path='data/data2/wf_change')
+        flow.run()
+
+        path_2 = flow.outputPath(PathTask2)
+        path_3 = flow.outputPath(PathTask3)
+        assert str(path_2) == "data/data2/wf_change/PathTask2/PathTask2__99914b932b-data.parquet"
+        assert str(path_3) == "data/data2/wf_change/PathTask3/PathTask3__99914b932b-data.parquet"
+        flow.reset()
+
+        # Execute task including all its dependencies
+        flow = d6tflow.Workflow(PathTask3, path='data/data2/wf_change', env='prod')
+        flow.run()
+
+        path_2 = flow.outputPath(PathTask2)
+        path_3 = flow.outputPath(PathTask3)
+        assert str(path_2) == "data/data2/wf_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet"
+        assert str(path_3) == "data/data2/wf_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet"
+        flow.reset()
+
+
 class TestWorkflowReset:
     def test_reset_downstream(self):
         # Execute task including all its dependencies

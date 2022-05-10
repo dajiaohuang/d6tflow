@@ -96,6 +96,10 @@ class TaskData(luigi.Task):
         else:
             dirpath = settings.dirpath
 
+        # Add Group
+        if hasattr(self, 'task_group'):
+            dirpath = pathlib.Path(str(dirpath) + "/group=" + getattr(self, 'task_group'))
+
         # Get Path
         tidroot = getattr(self, 'target_dir', self.task_id.split('_')[0])
         fname = '{}-{}'.format(self.task_id, k) if (settings.save_with_param and getattr(
