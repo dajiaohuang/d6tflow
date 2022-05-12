@@ -35,15 +35,16 @@ class TaskData(luigi.Task):
     persist = ['data']
     metadata = None
 
-    def __init__(self, *args, path=None, **kwargs):
+    def __init__(self, *args, path=None, flows=None, **kwargs):
         kwargs_ = {k: v for k, v in kwargs.items(
         ) if k in self.get_param_names(include_significant=True)}
         super().__init__(*args, **kwargs_)
+
         # Check if Child Has Path Var
-        if hasattr(self, 'path'):
-            self.path = getattr(self, 'path', None)
-        else:
-            self.path = path
+        self.path = getattr(self, 'path', path)
+        
+        # Flow
+        self.flows = flows
 
     @classmethod
     def get_param_values(cls, params, args, kwargs):

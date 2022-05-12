@@ -449,6 +449,33 @@ class TestWorkflowOutput:
         assert str(path_3) == "data/data2/wf_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet"
         flow.reset()
 
+        # Execute task including all its dependencies
+        flow = d6tflow.WorkflowMulti(params = {'experiment1': {'do_preprocess': False}, 'experiment2': {'do_preprocess': True}},
+                                        task=PathTask3, path='data/data2/wfm_change', env='prod')
+        flow.run()
+
+        path_2 = flow.outputPath(PathTask2)
+        path_3 = flow.outputPath(PathTask3)
+        assert path_2 == {
+            'experiment1': PosixPath('data/data2/wfm_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet'),
+            'experiment2': PosixPath('data/data2/wfm_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet')
+        }
+        assert path_3 == {
+            'experiment1': PosixPath('data/data2/wfm_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet'),
+            'experiment2': PosixPath('data/data2/wfm_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet')
+        }
+        flow.reset()
+
+        # Execute task including all its dependencies
+        flow = d6tflow.Workflow(path='data/data2/wf_change_run')
+        flow.run(PathTask3, forced_all=True)
+
+        path_2 = flow.outputPath(PathTask2)
+        path_3 = flow.outputPath(PathTask3)
+        assert str(path_2) == "data/data2/wf_change_run/PathTask2/PathTask2__99914b932b-data.parquet"
+        assert str(path_3) == "data/data2/wf_change_run/PathTask3/PathTask3__99914b932b-data.parquet"
+        flow.reset(PathTask3)
+
 
 class TestWorkflowReset:
     def test_reset_downstream(self):
@@ -513,3 +540,42 @@ class TestOutputLoad:
         assert (type(df_3)) is list
         assert (type(df_3[0])) is pd.DataFrame
         assert (type(df_3[1])) is pd.DataFrame
+
+
+class SubTask1(d6tflow.tasks.TaskCache):
+
+    def run(self):
+        df = pd.DataFrame({'a': range(3)})
+        self.save(df)  # quickly save dataframe
+
+@d6tflow.requires(SubTask1)
+class SubTask2(d6tflow.tasks.TaskPqPandas):
+    path = 'data/data2_changed'
+
+    def run(self):
+        df1 = self.inputLoad() * 2
+        self.save(df1)
+
+class SubTask3(d6tflow.tasks.TaskPqPandas):
+    
+    def run(self):
+        temp_flow_df = self.flows['flow'].outputLoad()
+        self.save(temp_flow_df)
+
+class TestSubFlows:
+
+    def test_sub_flow_correct(self):
+        # Assign Flows
+        flow = d6tflow.Workflow(SubTask2)
+        flow2 = d6tflow.Workflow(SubTask3)
+        flow.run()
+
+        flow2.attach_flow(flow, 'flow')
+        flow2.run()
+
+        df_flow_task_1 = flow.outputLoad(SubTask1)
+        df_flow_task_2 = flow.outputLoad()
+        df_flow_2 = flow2.outputLoad()
+        assert df_flow_task_1.equals(pd.DataFrame({'a': range(3)}))
+        assert df_flow_task_2.equals(pd.DataFrame({'a': range(3)}) * 2)
+        assert df_flow_2.equals(pd.DataFrame({'a': range(3)}) * 2)

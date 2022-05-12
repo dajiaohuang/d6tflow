@@ -99,6 +99,7 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
         for tf in forced:
             for tup in tasks:
                 invalidate.append(d6tflow.taskflow_downstream(tf, tup))
+
         invalidate = set().union(*invalidate)
         invalidate = {t for t in invalidate if t.complete()}
         if len(invalidate) > 0:
@@ -332,7 +333,7 @@ class Workflow(object):
         # Set Env 
         if path is not None and env is not None:
             path = path + '/env=' + env
-        # Will overide other tasks with this task's main path TODO: Check
+        # Will overide other tasks with this task's main path
         elif env is not None:
             import d6tflow.settings as settings
             path = task.path if hasattr(task, 'path') else settings.dirpath
@@ -341,16 +342,8 @@ class Workflow(object):
         # Set Params
         self.params = {} if params is None else params
         self.params = self.params if path is None else dict(**self.params, **{'path': path})
-
-        # Set Path if Path is set
-        if path is not None:
-            # Get all paths and change path var for all
-            task_inst = self.get_task(task)
-            tasks = taskflow_upstream(task_inst)
-            # Overide Path of all tasks
-            for temp_task in tasks:
-                # self.get_task(temp_task)
-                temp_task.path = path
+        # Add flows to params
+        self.params = dict(**self.params, **{'flows': {}})
         
         self.default_task = task
 
@@ -386,6 +379,18 @@ class Workflow(object):
         if not isinstance(tasks, (list,)):
             tasks = [tasks]
         tasks_inst = [self.get_task(x) for x in tasks]
+
+        # Before Running if Path/Flow Param is set, Set it to all other tasks
+        path_param = None
+        flow_param = None
+        if 'path' in self.params.keys():
+            path_param = self.params['path']
+        if self.params['flows']:
+            flow_param = self.params['flows']
+
+        # Attach to tasks
+        self._attach_to_tasks(tasks, flows=flow_param, path=path_param)
+
         return run(tasks_inst, forced=forced, forced_all=forced_all, forced_all_upstream=forced_all_upstream,
                    confirm=confirm, workers=workers, abort=abort, execution_summary=execution_summary, **kwargs)
 
@@ -501,6 +506,29 @@ class Workflow(object):
                 task = self.default_task
         return task(**self.params)
 
+    # Add a Flow to the Params of the Workflow
+    def attach_flow(self, flow=None, flow_name="flow"):
+        if self.params['flows']:
+            self.params['flows'][flow_name] = flow
+        else:
+            self.params['flows'] = {flow_name: flow}
+
+    # Attach Flow/Path to the Tasks
+    def _attach_to_tasks(self, tasks, flows=None, path=None):
+        # If Both not set
+        if not flows and not path:
+            return
+
+        # Get all paths
+        for t_task in tasks:
+            task_inst = self.get_task(t_task)
+            tasks = taskflow_upstream(task_inst)
+            # Overide param of all tasks
+            for temp_task in tasks:
+                if flows:
+                    temp_task.flows = self.params['flows']
+                if path:
+                    temp_task.path = self.params['path']
 
 class WorkflowMulti(object):
     """
