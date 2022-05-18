@@ -12,6 +12,14 @@ d6tflow integrates with `d6tpipe <https://github.com/d6t/d6tpipe>`_ which allows
 
 Sharing Flow output
 ------------------------------------------------------------
+.. code-block:: python
+
+    import d6tflow.pipes
+
+    # auto generate 'tasks_d6tpipe.py' and 'run_d6tpipe.py' for data consumer
+    d6tflow.pipes.FlowExport(tasks=task,pipename=cfg_pipe).generate()
+    d6tflow.pipes.FlowExport(flows=flow,pipename='ignore').generate()
+
 
 .. code-block:: python
 
@@ -21,9 +29,6 @@ Sharing Flow output
     d6tflow.pipes.init('your-task-output', local_pipe=True) # save flow output to local pipe directory
 
     d6tflow.run(SomeTask()) # output automatically saved in pipe directory
-
-    # auto generate 'tasks_d6tpipe.py' and 'run_d6tpipe.py' for data consumer
-    d6tflow.pipes.FlowExport(task,cfg_pipe).generate()
 
     # when you are ready to push output, connect to remote pipe
     do_push = True 

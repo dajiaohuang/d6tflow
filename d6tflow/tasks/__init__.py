@@ -48,11 +48,14 @@ class TaskData(luigi.Task):
         return super(TaskData, cls).get_param_values(params, args, kwargs_)
 
     def reset(self, confirm=True):
+        """
+        Reset a task, eg by deleting output file
+        """
         return self.invalidate(confirm)
 
     def invalidate(self, confirm=True):
         """
-        Invalidate a task, eg by deleting output file
+        Reset a task, eg by deleting output file
         """
         if confirm:
             c = input(
@@ -70,7 +73,7 @@ class TaskData(luigi.Task):
     @d6tcollect._collectClass
     def complete(self, cascade=True):
         """
-        Invalidate a task, eg by deleting output file
+        Check if a task is complete by checking if output exists, eg if output file exists
         """
         complete = super().complete()
         if d6tflow.settings.check_dependencies and cascade and not getattr(self, 'external', False):
