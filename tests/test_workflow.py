@@ -531,6 +531,10 @@ class TestOutputLoad:
         with pytest.raises(Exception):
             exeption_df = df[0]
 
+        df = GetData().outputLoad(keys=['xx'])
+        assert (type(df)) is list
+        assert (type(df[0])) is pd.DataFrame
+
         df_2 = GetData().outputLoad(keys=['xx', 'yy'])
         assert (type(df_2)) is list
         assert (type(df_2[0])) is pd.DataFrame
@@ -540,6 +544,10 @@ class TestOutputLoad:
         assert (type(df_3)) is list
         assert (type(df_3[0])) is pd.DataFrame
         assert (type(df_3[1])) is pd.DataFrame
+
+        # Key not present
+        with pytest.raises(Exception):
+            GetData().outputLoad(keys='not-there')
 
 
 class SubTask1(d6tflow.tasks.TaskCache):

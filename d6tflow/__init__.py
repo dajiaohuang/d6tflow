@@ -332,12 +332,11 @@ class Workflow(object):
     def __init__(self, task=None, params=None, path=None, env=None):
         # Set Env 
         if path is not None and env is not None:
-            path = path + '/env=' + env
+            path = path + f"/env={env}"
         # Will overide other tasks with this task's main path
         elif env is not None:
-            import d6tflow.settings as settings
-            path = task.path if hasattr(task, 'path') else settings.dirpath
-            path = str(path) + '/env=' + env
+            path = getattr(task, 'path', d6tflow.settings.dirpath)
+            path = str(path) + f"/env={env}"
 
         # Set Params
         self.params = {} if params is None else params

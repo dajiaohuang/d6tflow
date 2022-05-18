@@ -42,6 +42,9 @@ class TaskData(luigi.Task):
 
         # Check if Child Has Path Var
         self.path = getattr(self, 'path', path)
+
+        # Alias persists
+        self.persist = getattr(self, 'persists', self.persist)
         
         # Flow
         self.flows = flows
@@ -99,7 +102,7 @@ class TaskData(luigi.Task):
 
         # Add Group
         if hasattr(self, 'task_group'):
-            dirpath = pathlib.Path(str(dirpath) + "/group=" + getattr(self, 'task_group'))
+            dirpath = dirpath / f"/group={getattr(self, 'task_group')}"
 
         # Get Path
         tidroot = getattr(self, 'target_dir', self.task_id.split('_')[0])
@@ -191,8 +194,17 @@ class TaskData(luigi.Task):
             raise RuntimeError(
                 'Cannot load, task not complete, run flow first')
 
-        # Check Keys
+        # Check Keys is not empty
         keys = self.persist if keys is None else keys
+        # Not List
+        if type(keys) is not list:
+            if not keys in self.persist:
+                raise IndexError('Key name does not match')
+        else:
+            for key in keys:
+                if not key in self.persist:
+                    raise IndexError('Key name does not match')
+
         if self.persist == ['data']:  # 1 data shortcut
             return self.output().load()
         # Get Data
@@ -202,9 +214,9 @@ class TaskData(luigi.Task):
         # Return As List
         if not as_dict:
             data = list(data.values())
-        # If Keys len == 1
-        if type(keys) is list and len(keys) == 1 or type(keys) is not list:
-             data = data[0]
+        # If Keys is not a list
+        if type(keys) is not list:
+            data = data[0]
         
         # Return
         return data
