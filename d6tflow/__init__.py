@@ -99,6 +99,7 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
         for tf in forced:
             for tup in tasks:
                 invalidate.append(d6tflow.taskflow_downstream(tf, tup))
+
         invalidate = set().union(*invalidate)
         invalidate = {t for t in invalidate if t.complete()}
         if len(invalidate) > 0:
@@ -328,9 +329,21 @@ class Workflow(object):
     The class is used to orchestrate tasks and define a task pipeline
     """
 
-    def __init__(self, task=None, params=None, path=None):
+    def __init__(self, task=None, params=None, path=None, env=None):
+        # Set Env 
+        if path is not None and env is not None:
+            path = path + f"/env={env}"
+        # Will overide other tasks with this task's main path
+        elif env is not None:
+            path = getattr(task, 'path', d6tflow.settings.dirpath)
+            path = str(path) + f"/env={env}"
+
+        # Set Params
         self.params = {} if params is None else params
         self.params = self.params if path is None else dict(**self.params, **{'path': path})
+        # Add flows to params
+        self.params = dict(**self.params, **{'flows': {}})
+        
         self.default_task = task
 
     def preview(self, tasks=None, indent='', last=True, show_params=True, clip_params=False):
@@ -365,6 +378,18 @@ class Workflow(object):
         if not isinstance(tasks, (list,)):
             tasks = [tasks]
         tasks_inst = [self.get_task(x) for x in tasks]
+
+        # Before Running if Path/Flow Param is set, Set it to all other tasks
+        path_param = None
+        flow_param = None
+        if 'path' in self.params.keys():
+            path_param = self.params['path']
+        if self.params['flows']:
+            flow_param = self.params['flows']
+
+        # Attach to tasks
+        self._attach_to_tasks(tasks, flows=flow_param, path=path_param)
+
         return run(tasks_inst, forced=forced, forced_all=forced_all, forced_all_upstream=forced_all_upstream,
                    confirm=confirm, workers=workers, abort=abort, execution_summary=execution_summary, **kwargs)
 
@@ -381,6 +406,28 @@ class Workflow(object):
         Returns: list or dict of all task output
         """
         return self.get_task(task).outputLoad(keys=keys, as_dict=as_dict, cached=cached)
+
+    def outputPath(self, task=None):
+        """
+        Ouputs the Path given a task
+
+        Args:
+            task (class): task class
+
+        Returns: list or dict of all task paths
+        """
+        # Get Output
+        output = self.get_task(task).output()
+
+        # If Output is Dict, we have multiple outputs
+        if type(output) is dict:
+            # Get Paths
+            for output_name, output_target in output.items():
+                output[output_name] = output_target.path
+            
+            return output
+        else:
+            return output.path
 
     def complete(self, task=None):
         return self.get_task(task).complete()
@@ -458,6 +505,29 @@ class Workflow(object):
                 task = self.default_task
         return task(**self.params)
 
+    # Add a Flow to the Params of the Workflow
+    def attach_flow(self, flow=None, flow_name="flow"):
+        if self.params['flows']:
+            self.params['flows'][flow_name] = flow
+        else:
+            self.params['flows'] = {flow_name: flow}
+
+    # Attach Flow/Path to the Tasks
+    def _attach_to_tasks(self, tasks, flows=None, path=None):
+        # If Both not set
+        if not flows and not path:
+            return
+
+        # Get all paths
+        for t_task in tasks:
+            task_inst = self.get_task(t_task)
+            tasks = taskflow_upstream(task_inst)
+            # Overide param of all tasks
+            for temp_task in tasks:
+                if flows:
+                    temp_task.flows = self.params['flows']
+                if path:
+                    temp_task.path = self.params['path']
 
 class WorkflowMulti(object):
     """
@@ -465,7 +535,7 @@ class WorkflowMulti(object):
 
     """
 
-    def __init__(self, task=None, params=None, path=None):
+    def __init__(self, task=None, params=None, path=None, env=None):
         self.params = params
         if params is not None and type(params) not in [dict, list]:
             raise Exception("Params has to be a dictionary with key defining the flow name or a list")
@@ -479,7 +549,7 @@ class WorkflowMulti(object):
             raise Exception("Need to pass task parameters or use d6tflow.Workflow")
         self.default_task = task
         if params is not None:
-            self.workflow_objs = {k: Workflow(task=task, params=v, path=path) for k, v in self.params.items()}
+            self.workflow_objs = {k: Workflow(task=task, params=v, path=path, env=env) for k, v in self.params.items()}
 
     def run(self, tasks=None, flow=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False,
             workers=1, abort=True, execution_summary=None, **kwargs):
@@ -533,6 +603,25 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoad(task, keys, as_dict, cached)
         return data
 
+    def outputPath(self, task=None, flow=None):
+        """
+        Ouputs the Path given a task
+
+        Args:
+            task (class): task class
+            flow (string): The name of the experiment for which the flow is to be run. If nothing is passed, all the flows are run
+
+        Returns: list or dict of all task paths
+        """
+        if flow is not None:
+            return self.workflow_objs[flow].outputPath(task)
+
+        data = {}
+        for exp_name in self.params.keys():
+            data[exp_name] = self.workflow_objs[exp_name].outputPath(task)
+
+        return data
+
     def outputLoadMeta(self, task=None, flow=None):
         if flow is not None:
             return self.workflow_objs[flow].outputLoadMeta(task)
@@ -565,6 +654,11 @@ class WorkflowMulti(object):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
         return {self.workflow_objs[exp_name].reset(task, confirm) for exp_name in self.params.keys()}
+
+    def reset_downstream(self, task=None, flow=None, confirm=False):
+        if flow is not None:
+            return self.workflow_objs[flow].reset(task, confirm)
+        return {self.workflow_objs[exp_name].reset_downstream(task, confirm=confirm) for exp_name in self.params.keys()}
 
     def reset_upstream(self, task=None, flow=None, confirm=False):
         if flow is not None:
