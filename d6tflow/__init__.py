@@ -12,8 +12,9 @@ from luigi.parameter import (
     NumericalParameter, ChoiceParameter, OptionalParameter
 )
 
-import d6tcollect
+from pathlib import Path
 
+import d6tcollect
 d6tcollect.submit = True
 
 import d6tflow.targets, d6tflow.tasks, d6tflow.settings
@@ -22,7 +23,6 @@ from d6tflow.cache import data as data
 import d6tflow.cache
 
 print('Welcome to d6tflow! For Q&A see https://github.com/d6t/d6tflow')
-
 
 def set_dir(dir=None):
     """
@@ -38,7 +38,6 @@ def set_dir(dir=None):
         dirpath = d6tflow.settings.dirpath
         dirpath.mkdir(exist_ok=True)
     else:
-        from pathlib import Path
         dirpath = Path(dir)
         d6tflow.settings.dir = dir
         d6tflow.settings.dirpath = dirpath
@@ -723,3 +722,112 @@ class WorkflowMulti(object):
         Retuns: An instance of Workflow
         """
         return self.workflow_objs[flow]
+
+from jinja2 import Template
+
+# TODO:
+'''
+Check if we need to take into account the path set within the Flow
+task_pipename adds class.pipename. if this is not none, don't add task.path
+'''
+
+class FlowExport(object):
+
+    """
+    Auto generate run and task files to quickly share workflows with others using d6tpipe.
+
+    Args:
+        tasks (obj): task or list of tasks to share
+        flows (obj): task or list of tasks to share, including upstream tasks
+        save (bool): save to tasks file
+        task_path_base (str): base path of the dir, if set will append to task.path if task.path is not absolute
+        task_pipename (str): add pipeline to the tasks
+        write_dir (str): directory to export files into
+        filename_tasks (str): filename for tasks
+        run_load_values (bool): include param values in run file, eg `Task1(param=1)` vs just `Task1(param=1)` if false
+    """
+    def __init__(self, tasks=None, flows=None, save=False,
+                    task_path_base="", task_pipename=None,
+                    write_dir='.', filename_tasks='tasks_d6tpipe.py', run_load_values=True):
+        
+        tasks = [] if tasks is None else tasks
+        flows = [] if flows is None else flows
+        if not isinstance(tasks, (list,)):
+            tasks = [tasks]
+        if not isinstance(flows, (list,)):
+            flows = [flows]
+        for flow in flows:
+            for task in d6tflow.utils.traverse(flow):
+                tasks.append(task)
+
+        self.tasks = tasks
+        self.save = save
+        self.task_path_base = task_path_base
+        self.write_dir = Path(write_dir)
+        self.filename_tasks = filename_tasks
+        self.run_load_values = run_load_values
+
+        # file templates
+        self.tmpl_tasks = '''
+import d6tflow
+import luigi
+import datetime
+
+{% for task in tasks -%}
+
+class {{task.name}}({{task.class}}):
+    external=True
+    persist={{task.obj.persist}}
+    {% if task.path -%}
+    path="{{task.path}}"
+    {% endif -%}
+    {% if task.obj.pipename -%}
+    pipename={{task.obj.pipename}}
+    {% endif -%}
+    {% for param in task.params -%}
+    {{param.name}}={{param.class}}(default={{param.value}})
+    {% endfor %}
+{% endfor %}
+'''
+
+    def generate(self):
+        """
+        Generate output files
+        """
+        tasksPrint = []
+        for task in self.tasks:
+                if getattr(task, 'export', True):
+                    class_ = next(c for c in type(task).__mro__ if 'd6tflow.tasks.' in str(c)) # type(task).__mro__[1]
+                    # TODO:
+                    # Give priority to Flow.params.path
+                    # if 'path' in self.flows.params.keys():
+                    #     pass
+
+                    # Get Path
+                    task_path = getattr(task, 'path', None)
+                    task_path = Path(task_path) if task_path else None
+                    # Check if Path Base is added
+                    if self.task_path_base:
+                        # Path is not absolute
+                        if task_path and not Path(task_path).is_absolute():
+                            task_path = Path(self.task_path_base) / Path(task_path)
+                        else:
+                            task_path = Path(self.task_path_base) / d6tflow.settings.dirpath
+
+                    # Create Dict
+                    taskPrint = {'name': task.__class__.__name__, 'class': class_.__module__ + "." + class_.__name__,
+                                    'obj': task, 'persist': task.persist, 'path': task_path,
+                                        'params': [{'name': param[0],
+                                            'class': f'{param[1].__class__.__module__}.{param[1].__class__.__name__}',
+                                            'value': repr(getattr(task,param[0]))} for param in task.get_params()]} # param[1]._default
+                    tasksPrint.append(taskPrint)
+
+        tasksPrint[-1], tasksPrint[0:-1] = tasksPrint[0], tasksPrint[1:]
+
+        # Print or Save to File
+        if not self.save:
+            print(Template(self.tmpl_tasks).render(tasks=tasksPrint))
+        else:
+            # Write Tasks
+            with open(self.write_dir / self.filename_tasks, 'w') as fh:
+                fh.write(Template(self.tmpl_tasks).render(tasks=tasksPrint))

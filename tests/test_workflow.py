@@ -197,13 +197,11 @@ class TestWorkflow:
 # Test Export
 import pathlib
 import luigi
-import d6tflow.pipes
-class TestExports:
+class TestFlowExports:
     # Vars
     df = pd.DataFrame({'a': range(10)})
     cfg_write_dir = pathlib.Path('tests')
     cfg_write_filename_tasks = 'tasks_d6tpipe.py'
-    cfg_write_filename_run = 'run_d6tpipe.py'
 
     class Task1A0(d6tflow.tasks.TaskCache):
         pass
@@ -234,6 +232,18 @@ class TestExports:
         def run(self):
             self.save(self.df)
 
+    @d6tflow.requires(Task1A, Task1B, Task1C)
+    class Task2(d6tflow.tasks.TaskCache):
+        pipename = ['d6tpipe_pipe1']
+        def run(self):
+            self.save(self.df)
+
+    @d6tflow.requires(Task1A, Task1B, Task1C)
+    class Task2Path(d6tflow.tasks.TaskCache):
+        path = "usr/test/"
+        def run(self):
+            self.save(self.df)
+
     # Helpers
     def setup_module(self):
         d6tflow.run(self.Task1All())
@@ -250,7 +260,6 @@ class TestExports:
     def cleanup(self):
         yield True
         (self.cfg_write_dir/self.cfg_write_filename_tasks).unlink()
-        (self.cfg_write_dir/self.cfg_write_filename_run).unlink()
 
     def teardown_module(self):
         # Reset
@@ -259,14 +268,17 @@ class TestExports:
         self.Task1B().reset()
         self.Task1C().reset()
         self.Task1All().reset()
+        self.Task2().reset()
+        self.Task2Path().reset()
 
     # Tests
     def test_task(self, cleanup):
 
-        e = d6tflow.pipes.FlowExport('utest-flowexport',tasks=self.Task1All(),write_dir=self.cfg_write_dir)
+        e = d6tflow.FlowExport(tasks=self.Task1All(), 
+                                        save=True, write_dir=self.cfg_write_dir)
         e.generate()
 
-        code = self.readfile(e.write_dir/e.write_filename_tasks)
+        code = self.readfile(e.write_dir / e.filename_tasks)
         assert code == '''
 import d6tflow
 import luigi
@@ -281,26 +293,13 @@ class Task1All(d6tflow.tasks.TaskCache):
 
 '''
 
-        code = self.readfile(e.write_dir/e.write_filename_run)
-        assert code == '''
-# shared d6tflow workflow, see https://d6tflow.readthedocs.io/en/latest/collaborate.html
-import d6tflow.pipes
-import tasks_d6tpipe
-import datetime
-
-d6tflow.pipes.init('utest-flowexport',profile='default') # to customize see https://d6tflow.readthedocs.io/en/latest/d6tflow.html#d6tflow.pipes.init
-d6tflow.pipes.get_pipe('utest-flowexport').pull()
-
-# task output is loaded below, for more details see https://d6tflow.readthedocs.io/en/latest/tasks.html#load-output-data
-df_task1all = tasks_d6tpipe.Task1All(idx=1, idx2='test', idx3='test3', ).outputLoad()
-'''
-
     def test_task2(self, cleanup):
 
-        e = d6tflow.pipes.FlowExport('utest-flowexport',tasks=[self.Task1A(), self.Task1All()],write_dir=self.cfg_write_dir)
+        e = d6tflow.FlowExport(tasks=[self.Task1A(), self.Task1All()], 
+                                        save=True, write_dir=self.cfg_write_dir)
         e.generate()
 
-        code = self.readfile(e.write_dir/e.write_filename_tasks)
+        code = self.readfile(e.write_dir / e.filename_tasks)
         assert code == '''
 import d6tflow
 import luigi
@@ -321,27 +320,13 @@ class Task1A(d6tflow.tasks.TaskCache):
 
 '''
 
-        code = self.readfile(e.write_dir/e.write_filename_run)
-        assert code == '''
-# shared d6tflow workflow, see https://d6tflow.readthedocs.io/en/latest/collaborate.html
-import d6tflow.pipes
-import tasks_d6tpipe
-import datetime
-
-d6tflow.pipes.init('utest-flowexport',profile='default') # to customize see https://d6tflow.readthedocs.io/en/latest/d6tflow.html#d6tflow.pipes.init
-d6tflow.pipes.get_pipe('utest-flowexport').pull()
-
-# task output is loaded below, for more details see https://d6tflow.readthedocs.io/en/latest/tasks.html#load-output-data
-df_task1all = tasks_d6tpipe.Task1All(idx=1, idx2='test', idx3='test3', ).outputLoad()
-df_task1a_df, df_task1a_df2, = tasks_d6tpipe.Task1A(idx=1, idx2='test', ).outputLoad()
-'''
-
     def test_flow(self, cleanup):
 
-        e = d6tflow.pipes.FlowExport('utest-flowexport',flows=self.Task1All(),write_dir=self.cfg_write_dir)
+        e = d6tflow.FlowExport(flows=self.Task1All(), 
+                                        save=True, write_dir=self.cfg_write_dir)
         e.generate()
 
-        code = self.readfile(e.write_dir/e.write_filename_tasks)
+        code = self.readfile(e.write_dir / e.filename_tasks)
         assert code == '''
 import d6tflow
 import luigi
@@ -367,21 +352,75 @@ class Task1All(d6tflow.tasks.TaskCache):
 
 '''
 
-        code = self.readfile(e.write_dir/e.write_filename_run)
+    # Test task.pipename
+    def test_task_pipename(self, cleanup):
+
+        e = d6tflow.FlowExport(tasks=self.Task2(),
+                                        save=True, write_dir=self.cfg_write_dir)
+        e.generate()
+
+        code = self.readfile(e.write_dir / e.filename_tasks)
         assert code == '''
-# shared d6tflow workflow, see https://d6tflow.readthedocs.io/en/latest/collaborate.html
-import d6tflow.pipes
-import tasks_d6tpipe
+import d6tflow
+import luigi
 import datetime
 
-d6tflow.pipes.init('utest-flowexport',profile='default') # to customize see https://d6tflow.readthedocs.io/en/latest/d6tflow.html#d6tflow.pipes.init
-d6tflow.pipes.get_pipe('utest-flowexport').pull()
+class Task2(d6tflow.tasks.TaskCache):
+    external=True
+    persist=['data']
+    pipename=['d6tpipe_pipe1']
+    idx=luigi.parameter.IntParameter(default=1)
+    idx2=luigi.parameter.Parameter(default='test')
+    idx3=luigi.parameter.Parameter(default='test3')
 
-# task output is loaded below, for more details see https://d6tflow.readthedocs.io/en/latest/tasks.html#load-output-data
-df_task1a_df, df_task1a_df2, = tasks_d6tpipe.Task1A(idx=1, idx2='test', ).outputLoad()
-df_task1b_df, df_task1b_df2, = tasks_d6tpipe.Task1B(idx3='test3', ).outputLoad()
-df_task1all = tasks_d6tpipe.Task1All(idx=1, idx2='test', idx3='test3', ).outputLoad()
 '''
+
+    # Test Path
+    def test_task_path(self, cleanup):
+
+        e = d6tflow.FlowExport(tasks=self.Task2Path(),
+                                        save=True, write_dir=self.cfg_write_dir)
+        e.generate()
+
+        code = self.readfile(e.write_dir / e.filename_tasks)
+        assert code == '''
+import d6tflow
+import luigi
+import datetime
+
+class Task2Path(d6tflow.tasks.TaskCache):
+    external=True
+    persist=['data']
+    path="usr/test"
+    idx=luigi.parameter.IntParameter(default=1)
+    idx2=luigi.parameter.Parameter(default='test')
+    idx3=luigi.parameter.Parameter(default='test3')
+
+'''
+
+    # Test Path
+    def test_task_path_base(self, cleanup):
+
+        e = d6tflow.FlowExport(tasks=self.Task2Path(), task_path_base="/root",
+                                        save=True, write_dir=self.cfg_write_dir)
+        e.generate()
+
+        code = self.readfile(e.write_dir / e.filename_tasks)
+        assert code == '''
+import d6tflow
+import luigi
+import datetime
+
+class Task2Path(d6tflow.tasks.TaskCache):
+    external=True
+    persist=['data']
+    path="/root/usr/test"
+    idx=luigi.parameter.IntParameter(default=1)
+    idx2=luigi.parameter.Parameter(default='test')
+    idx3=luigi.parameter.Parameter(default='test3')
+
+'''
+
 
 
 # Test Input Load
