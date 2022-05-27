@@ -763,6 +763,7 @@ class FlowExport(object):
         self.tasks = tasks
         self.save = save
         self.task_path_base = task_path_base
+        self.task_pipename = task_pipename
         self.write_dir = Path(write_dir)
         self.filename_tasks = filename_tasks
         self.run_load_values = run_load_values
@@ -778,11 +779,15 @@ import datetime
 class {{task.name}}({{task.class}}):
     external=True
     persist={{task.obj.persist}}
+    {% if task.pipename -%}
+    pipename={{task.pipename}}
+    {% else -%}
     {% if task.path -%}
     path="{{task.path}}"
     {% endif -%}
     {% if task.obj.pipename -%}
     pipename={{task.obj.pipename}}
+    {% endif -%}
     {% endif -%}
     {% for param in task.params -%}
     {{param.name}}={{param.class}}(default={{param.value}})
@@ -816,7 +821,7 @@ class {{task.name}}({{task.class}}):
 
                     # Create Dict
                     taskPrint = {'name': task.__class__.__name__, 'class': class_.__module__ + "." + class_.__name__,
-                                    'obj': task, 'persist': task.persist, 'path': task_path,
+                                    'obj': task, 'persist': task.persist, 'path': task_path, 'pipename': self.task_pipename,
                                         'params': [{'name': param[0],
                                             'class': f'{param[1].__class__.__module__}.{param[1].__class__.__name__}',
                                             'value': repr(getattr(task,param[0]))} for param in task.get_params()]} # param[1]._default
