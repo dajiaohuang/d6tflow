@@ -817,71 +817,64 @@ class {{task.name}}({{task.class}}):
             with open(self.path_export, 'w') as fh:
                 fh.write(Template(self.tmpl_tasks).render(tasks=tasksPrint))
 
-# TODO: Check Design if class or Def
 import importlib.util
-# class FlowImport(object):
-#     """
-#     Import a specific module from a directory.
-
-#     Args:
-#         path (str): path to the dir to import from
-#         module (str): the module name to import
-#         path_data (str): path to the data file; if not absolute will be appended to path
-#     """
-#     def __init__(self, path=None, module=None, path_data=None):
-#         self.path = path
-#         self.module = module
-        
-#         # if path_data is an absolute path, use that, else append to path)
-#         if Path(path_data).is_absolute():
-#             self.path_data = path_data
-#         else:
-#             self.path_data = Path(path) / Path(path_data)
-
-
-#     def _module_from_file(self, module_name, file_path):
-#         spec = importlib.util.spec_from_file_location(module_name, file_path)
-#         module = importlib.util.module_from_spec(spec)
-#         spec.loader.exec_module(module)
-#         return module
-
-
-# TODO:
-# Check if we need to import all Tasks Classes into a Bundle called tasks. -- Yes
-# dirpath bundle    -- Var for that too
-# Path_data overides what
-def FlowImport(path=None, module=None, path_data=None):
+import inspect
+class FlowImport(object):
     """
     Import a specific module from a directory.
 
     Args:
         path (str): path to the dir to import from
-        module (str): the module file name to import
+        module (str): the module name to import
         path_data (str): path to the data file; if not absolute will be appended to path
     """
-    # if path_data is an absolute path, use that, else append to path)
-    if Path(path_data).is_absolute():
-        path_data = path_data
-    else:
-        path_data = Path(path) / Path(path_data)
-    
-    # Check if exists
-    if (Path(path) / Path(str(module) + ".py")).exists():
-        # TODO: Do More Checks
-        path = Path(path) / Path(str(module) + ".py")
-    else:
-        print("Path {} not found.".format((Path(path) / Path(str(module) + ".py"))))
-        return None
+    def __init__(self, path=None, module=None, path_data=None):
+        # INIT
+        self.path = path
+        self.module = module
+        self.tasks = {}
+        
+        # if path_data is an absolute path, use that, else append to path)
+        if Path(path_data).is_absolute():
+            self.dirpath = path_data
+        else:
+            self.dirpath = Path(path) / Path(path_data)
+        
+        # Check if name ends with .py
+        if not str(module).endswith(".py"):
+            module = str(module) + ".py"
+        # Check if exists
+        if (Path(path) / Path(module)).exists():
+            path = Path(path) / Path(module)
+        else:
+            print("Path {} not found.".format((Path(path) / Path(module))))
 
-    return _module_from_file(module, path)
+        # Get Module, Tasks, Dirpath
+        self.module_obj = self._module_from_file(module, path)
+        self._get_tasks()
 
+    def _get_tasks(self):
+        tasks = {}
+        for name, obj in inspect.getmembers(self.module_obj):
+            if inspect.isclass(obj) and type(obj) is luigi.task_register.Register:
+                tasks[name] = obj
+        # Convert to DotDict so that we can use .
+        self.tasks = dotdict(tasks)
 
-def _module_from_file(module_name, file_path):
-    try:
-        spec = importlib.util.spec_from_file_location(module_name, file_path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
-    except:
-        print("Module {} not found.".format(module_name))
-        return None
+    def _module_from_file(self, module_name, file_path):
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        except:
+            print("Module {} not found.".format(module_name))
+            return None
+
+# Helper Class
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
