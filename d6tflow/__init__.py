@@ -342,8 +342,14 @@ class Workflow(object):
         self.params = self.params if path is None else dict(**self.params, **{'path': path})
         # Add flows to params
         self.params = dict(**self.params, **{'flows': {}})
-        
+        # Default Task
         self.default_task = task
+        # If Task is set, Try to send Flow path to all other tasks
+        if task:
+            # Attach to tasks
+            if not isinstance(task, (list,)):
+                task = [task]
+            self._attach_to_tasks(task, path=path)
 
     def preview(self, tasks=None, indent='', last=True, show_params=True, clip_params=False):
         """
@@ -724,31 +730,17 @@ class WorkflowMulti(object):
         return self.workflow_objs[flow]
 
 from jinja2 import Template
-
-# TODO:
-'''
-Check if we need to take into account the path set within the Flow
-task_pipename adds class.pipename. if this is not none, don't add task.path
-'''
-
 class FlowExport(object):
-
     """
-    Auto generate run and task files to quickly share workflows with others using d6tpipe.
+    Auto generate task files to quickly share workflows with others using d6tpipe.
 
     Args:
         tasks (obj): task or list of tasks to share
         flows (obj): task or list of tasks to share, including upstream tasks
         save (bool): save to tasks file
-        task_path_base (str): base path of the dir, if set will append to task.path if task.path is not absolute
-        task_pipename (str): add pipeline to the tasks
-        write_dir (str): directory to export files into
-        filename_tasks (str): filename for tasks
-        run_load_values (bool): include param values in run file, eg `Task1(param=1)` vs just `Task1(param=1)` if false
+        path_export (str): filename for tasks to export.
     """
-    def __init__(self, tasks=None, flows=None, save=False,
-                    task_path_base="", task_pipename=None,
-                    write_dir='.', filename_tasks='tasks_d6tpipe.py', run_load_values=True):
+    def __init__(self, tasks=None, flows=None, save=False, path_export='tasks_d6tpipe.py'):
         
         tasks = [] if tasks is None else tasks
         flows = [] if flows is None else flows
@@ -762,11 +754,7 @@ class FlowExport(object):
 
         self.tasks = tasks
         self.save = save
-        self.task_path_base = task_path_base
-        self.task_pipename = task_pipename
-        self.write_dir = Path(write_dir)
-        self.filename_tasks = filename_tasks
-        self.run_load_values = run_load_values
+        self.path_export = path_export
 
         # file templates
         self.tmpl_tasks = '''
@@ -779,15 +767,14 @@ import datetime
 class {{task.name}}({{task.class}}):
     external=True
     persist={{task.obj.persist}}
-    {% if task.pipename -%}
-    pipename={{task.pipename}}
-    {% else -%}
     {% if task.path -%}
     path="{{task.path}}"
     {% endif -%}
     {% if task.obj.pipename -%}
     pipename={{task.obj.pipename}}
     {% endif -%}
+    {% if task.obj.task_group -%}
+    task_group="{{task.obj.task_group}}"
     {% endif -%}
     {% for param in task.params -%}
     {{param.name}}={{param.class}}(default={{param.value}})
@@ -811,17 +798,10 @@ class {{task.name}}({{task.class}}):
                     # Get Path
                     task_path = getattr(task, 'path', None)
                     task_path = Path(task_path) if task_path else None
-                    # Check if Path Base is added
-                    if self.task_path_base:
-                        # Path is not absolute
-                        if task_path and not Path(task_path).is_absolute():
-                            task_path = Path(self.task_path_base) / Path(task_path)
-                        else:
-                            task_path = Path(self.task_path_base) / d6tflow.settings.dirpath
 
                     # Create Dict
                     taskPrint = {'name': task.__class__.__name__, 'class': class_.__module__ + "." + class_.__name__,
-                                    'obj': task, 'persist': task.persist, 'path': task_path, 'pipename': self.task_pipename,
+                                    'obj': task, 'persist': task.persist, 'path': task_path,
                                         'params': [{'name': param[0],
                                             'class': f'{param[1].__class__.__module__}.{param[1].__class__.__name__}',
                                             'value': repr(getattr(task,param[0]))} for param in task.get_params()]} # param[1]._default
@@ -834,5 +814,74 @@ class {{task.name}}({{task.class}}):
             print(Template(self.tmpl_tasks).render(tasks=tasksPrint))
         else:
             # Write Tasks
-            with open(self.write_dir / self.filename_tasks, 'w') as fh:
+            with open(self.path_export, 'w') as fh:
                 fh.write(Template(self.tmpl_tasks).render(tasks=tasksPrint))
+
+# TODO: Check Design if class or Def
+import importlib.util
+# class FlowImport(object):
+#     """
+#     Import a specific module from a directory.
+
+#     Args:
+#         path (str): path to the dir to import from
+#         module (str): the module name to import
+#         path_data (str): path to the data file; if not absolute will be appended to path
+#     """
+#     def __init__(self, path=None, module=None, path_data=None):
+#         self.path = path
+#         self.module = module
+        
+#         # if path_data is an absolute path, use that, else append to path)
+#         if Path(path_data).is_absolute():
+#             self.path_data = path_data
+#         else:
+#             self.path_data = Path(path) / Path(path_data)
+
+
+#     def _module_from_file(self, module_name, file_path):
+#         spec = importlib.util.spec_from_file_location(module_name, file_path)
+#         module = importlib.util.module_from_spec(spec)
+#         spec.loader.exec_module(module)
+#         return module
+
+
+# TODO:
+# Check if we need to import all Tasks Classes into a Bundle called tasks. -- Yes
+# dirpath bundle    -- Var for that too
+# Path_data overides what
+def FlowImport(path=None, module=None, path_data=None):
+    """
+    Import a specific module from a directory.
+
+    Args:
+        path (str): path to the dir to import from
+        module (str): the module file name to import
+        path_data (str): path to the data file; if not absolute will be appended to path
+    """
+    # if path_data is an absolute path, use that, else append to path)
+    if Path(path_data).is_absolute():
+        path_data = path_data
+    else:
+        path_data = Path(path) / Path(path_data)
+    
+    # Check if exists
+    if (Path(path) / Path(str(module) + ".py")).exists():
+        # TODO: Do More Checks
+        path = Path(path) / Path(str(module) + ".py")
+    else:
+        print("Path {} not found.".format((Path(path) / Path(str(module) + ".py"))))
+        return None
+
+    return _module_from_file(module, path)
+
+
+def _module_from_file(module_name, file_path):
+    try:
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    except:
+        print("Module {} not found.".format(module_name))
+        return None
