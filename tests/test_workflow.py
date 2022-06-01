@@ -470,7 +470,32 @@ class Task3Flow(d6tflow.tasks.TaskCache):
 
 '''
 
-# TODO: FlowImport Tests
+# FlowImport Tests
+class TestFlowImport:
+
+    def test_import_file_not_found(self):
+        with pytest.raises(Exception) as e_info:
+            scraper = d6tflow.FlowImport(path='tests/', module='for_imports', path_data='data/')
+
+    def test_import_dirpath(self):
+        scraper = d6tflow.FlowImport(path='tests/', module='for_import', path_data='data/')
+        assert scraper.dirpath == Path("tests/data")
+
+    def test_import_tasks(self):
+        scraper = d6tflow.FlowImport(path='tests/', module='for_import', path_data='data/')
+        assert scraper.tasks.Task1All.pipename == ['d6tpipe_pipe1']
+        assert scraper.tasks.Task1All.task_group == "upwork"
+        
+    def test_import_to_flow(self):
+        scraper = d6tflow.FlowImport(path='tests/', module='for_import', path_data='data/')
+        flow_scrape = d6tflow.Workflow(path=scraper.dirpath, env='prod')	
+        with pytest.raises(Exception) as e_info:
+            flow_scrape.outputLoad(scraper.tasks.Task1C)
+
+        flow_scrape.run(scraper.tasks.Task1C)
+        output = flow_scrape.outputLoad(scraper.tasks.Task1C)
+        assert output[0].equals(pd.DataFrame({'a': range(10)}))
+
 
 # Test Input Load
 class TaskSingleOutput(d6tflow.tasks.TaskPqPandas):

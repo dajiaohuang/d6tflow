@@ -331,7 +331,7 @@ class Workflow(object):
     def __init__(self, task=None, params=None, path=None, env=None):
         # Set Env 
         if path is not None and env is not None:
-            path = path + f"/env={env}"
+            path = str(path) + f"/env={env}"
         # Will overide other tasks with this task's main path
         elif env is not None:
             path = getattr(task, 'path', d6tflow.settings.dirpath)
@@ -844,10 +844,11 @@ class FlowImport(object):
         if not str(module).endswith(".py"):
             module = str(module) + ".py"
         # Check if exists
-        if (Path(path) / Path(module)).exists():
+        path_to_file = Path(path) / Path(module)
+        if (path_to_file).exists():
             path = Path(path) / Path(module)
         else:
-            print("Path {} not found.".format((Path(path) / Path(module))))
+            raise ValueError("Path {} not found.".format((Path(path) / Path(module))))
 
         # Get Module, Tasks, Dirpath
         self.module_obj = self._module_from_file(module, path)
