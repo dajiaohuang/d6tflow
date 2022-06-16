@@ -1,78 +1,61 @@
 Sharing Workflows and Outputs
 ==============================================
 
-d6tpipe Integration
+Introduction
 ------------------------------------------------------------
 
-d6tflow integrates with `d6tpipe <https://github.com/d6t/d6tpipe>`_ which allows you to sync your flow output with remote data repos on S3 and ftp. This makes sharing flow output and handing projects off to others very seamless. Some cases when you want to do this include:
+With d6tflow you can Export and Import Tasks from other projects and files.
+This makes sharing flow output and handing projects off to others very seamless. Some cases when you want to do this include:
 
 * data engineers share data with data scientists
 * vendors sharing data with clients
 * teachers sharing data with students
 
-Sharing Flow output
+Exporting Tasks
 ------------------------------------------------------------
 
-.. code-block:: python
-
-    import d6tflow.pipes
-
-    # work in local mode first
-    d6tflow.pipes.init('your-task-output', local_pipe=True) # save flow output to local pipe directory
-
-    d6tflow.run(SomeTask()) # output automatically saved in pipe directory
-
-    # auto generate 'tasks_d6tpipe.py' for data consumer
-    d6tflow.FlowExport(task,cfg_pipe).generate()
-
-    # when you are ready to push output, connect to remote pipe
-    do_push = True 
-    if do_push:
-        d6tflow.pipes.init('your-task-output', reset=True) # connect to remote pipe
-        pipe = d6tflow.pipes.get_pipe()
-        pipe.push_preview()
-        pipe.push() # upload data to remote data repo
-
-Make sure you have configured d6tpipe correctly before you push. See https://d6tpipe.readthedocs.io/en/latest/quickstart.html#first-time-setup
-
-To customize `init()` see :doc:`d6tflow.pipes module in Reference<../d6tflow>`
-
-You might also need to set up the remote pipe for access, for example:
+You can Export your tasks into a new File or print the tasks in the console.
+All parameters, paths, task_group will be exported.
 
 .. code-block:: python
+    class Task1():
+        def run(self):
+            #Save
 
-    import d6tpipe
-    api = d6tpipe.api.APIClient()
-    # create pipe
-    d6tpipe.upsert_pipe(api, {'name': 'your-task-output'})
+    @d6tflow.requires(Task1)
+    class Task2():
+        def run(self):
+            #Save
 
-    # optionally set permissions, in this case make data public
-    settings = {"username":"public","role":"read"}
-    d6tpipe.upsert_permissions(api, 'your-task-output', settings)
+    # This will only export Task 2 to console
+    e = d6tflow.FlowExport(tasks=Task2())
+    e.generate() 
 
-For additional details on how to use d6tpipe see https://d6tpipe.readthedocs.io/en/latest/quickstart.html
+    # This will export All the flow (Task 1, Task2) to a file
+    e = d6tflow.FlowExport(flows=Task2(), save=True, path_export='/path/to/file.py')
+    e.generate()
 
-Push/Pull Individual Task Output
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Importing Tasks
+------------------------------------------------------------
 
+You can import tasks from other folder and files into the file you want to run the flow in.
 
 .. code-block:: python
+    # tasks/tasks.py
 
-    import d6tflow.pipes
-    d6tflow.pipes.init('your-task-output') # save flow output to pipe
+    class TaskScrape():
+        def run():
+            # load input data
+            # process data
+            # save data
 
-    # upload task output
-    TaskGenerateData().push_preview() # preview
-    d6tflow.pipes.all_push(TaskGenerateData()) # push data from all downstream tasks
+The `tasks/tasks.py` file above contains all the tasks classes we need.
+Inside the `repos.py` we will import the tasks we want and run the flow.
 
-    class TaskOthers(d6tflow.tasks.TaskPqPandas):
-        external = True
-        pipename = 'your-task-output'
+.. code-block:: python
+    # repos.py
+    scraper = d6tflow.FlowImport(path='tasks/', module='tasks', path_data='data/')
+    flow_scrape = d6tflow.Workflow(scraper.tasks.TaskScrape, path=scraper.dirpath, env='prod')
+    flow_scrape.run()
 
-    TaskOthers().pull_preview() # get task data from external
-    d6tflow.pipes.all_pull(TaskOthers()) # pull data for all downstream tasks
-
-    pipe = d6tflow.pipes.get_pipe() # default pipe
-    pipe = d6tflow.pipes.get_pipe(TaskOthers().pipename) # task-specific pipe 
-    pipe.push()
-
+FlowImport returns an object which contains all the Tasks imported from the file under `tasks` and dirpath which is the data directory location.
