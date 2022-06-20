@@ -736,7 +736,7 @@ class FlowExport(object):
 
     Args:
         tasks (obj): task or list of tasks to share
-        flows (obj): task or list of tasks to share, including upstream tasks
+        flows (obj): flow or list of flows to get tasks from.
         save (bool): save to tasks file
         path_export (str): filename for tasks to export.
     """
@@ -749,7 +749,9 @@ class FlowExport(object):
         if not isinstance(flows, (list,)):
             flows = [flows]
         for flow in flows:
-            for task in d6tflow.utils.traverse(flow):
+            task_inst = flow.get_task()
+            t_tasks = taskflow_upstream(task_inst)
+            for task in t_tasks:
                 tasks.append(task)
 
         self.tasks = tasks
@@ -790,10 +792,6 @@ class {{task.name}}({{task.class}}):
         for task in self.tasks:
                 if getattr(task, 'export', True):
                     class_ = next(c for c in type(task).__mro__ if 'd6tflow.tasks.' in str(c)) # type(task).__mro__[1]
-                    # TODO:
-                    # Give priority to Flow.params.path
-                    # if 'path' in self.flows.params.keys():
-                    #     pass
 
                     # Get Path
                     task_path = getattr(task, 'path', None)

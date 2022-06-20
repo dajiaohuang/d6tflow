@@ -27,12 +27,14 @@ All parameters, paths, task_group will be exported.
         def run(self):
             #Save
 
+    flow = d6tflow.Workflow(Task2())
+
     # This will only export Task 2 to console
     e = d6tflow.FlowExport(tasks=Task2())
     e.generate() 
 
-    # This will export All the flow (Task 1, Task2) to a file
-    e = d6tflow.FlowExport(flows=Task2(), save=True, path_export='/path/to/file.py')
+    # This will export All the flow (Task1, Task2) to a file
+    e = d6tflow.FlowExport(flows=flow, save=True, path_export='tasks_export.py')
     e.generate()
 
 Importing Tasks
@@ -41,21 +43,8 @@ Importing Tasks
 You can import tasks from other folder and files into the file you want to run the flow in.
 
 .. code-block:: python
-    # tasks/tasks.py
-
-    class TaskScrape():
-        def run():
-            # load input data
-            # process data
-            # save data
-
-The `tasks/tasks.py` file above contains all the tasks classes we need.
-Inside the `repos.py` we will import the tasks we want and run the flow.
-
-.. code-block:: python
-    # repos.py
-    scraper = d6tflow.FlowImport(path='tasks/', module='tasks', path_data='data/')
-    flow_scrape = d6tflow.Workflow(scraper.tasks.TaskScrape, path=scraper.dirpath, env='prod')
-    flow_scrape.run()
+    scraper = d6tflow.FlowImport(path='../another-project/', module='tasks_export.py', path_data='data/')
+    flow_import = d6tflow.Workflow(scraper.tasks.TaskScrape, path=scraper.dirpath, env='prod')
+    flow_import.run()
 
 FlowImport returns an object which contains all the Tasks imported from the file under `tasks` and dirpath which is the data directory location.

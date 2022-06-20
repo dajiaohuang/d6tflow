@@ -283,6 +283,8 @@ class TestFlowExports:
         self.Task1All().reset()
         self.Task2().reset()
         self.Task2Path().reset()
+        self.Task2Task_group().reset()
+        self.Task3Flow().reset()
 
     # Tests
     def test_task(self, cleanup):
@@ -333,8 +335,9 @@ class Task1A(d6tflow.tasks.TaskCache):
 '''
 
     def test_flow(self, cleanup):
+        flow = d6tflow.Workflow(self.Task1All)
 
-        e = d6tflow.FlowExport(flows=self.Task1All(), 
+        e = d6tflow.FlowExport(flows=flow,
                                         save=True, path_export=self.file_path)
         e.generate()
 
@@ -436,7 +439,7 @@ class Task2Task_group(d6tflow.tasks.TaskCache):
     # Test Flow Path Setting
     def test_task_flow_path(self, cleanup):
         flow = d6tflow.Workflow(self.Task3Flow, path='data/data2/wf_change', env='prod')
-        e = d6tflow.FlowExport(flows=self.Task3Flow(),
+        e = d6tflow.FlowExport(flows=flow,
                                         save=True, path_export=self.file_path)
         e.generate()
 
