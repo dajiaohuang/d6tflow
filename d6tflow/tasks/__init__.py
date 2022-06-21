@@ -206,7 +206,12 @@ class TaskData(luigi.Task):
                     raise IndexError('Key name does not match')
 
         if self.persist == ['data']:  # 1 data shortcut
-            return self.output().load()
+            persist_data = self.output().load()
+            # Check single Key
+            if len(persist_data) == 1:
+                persist_data = persist_data[0]
+            return persist_data
+
         # Get Data
         data = {k: v.load(cached)
                 for k, v in self.output().items() if k in keys}
