@@ -35,11 +35,19 @@ class TaskData(luigi.Task):
     persist = ['data']
     metadata = None
 
-    def __init__(self, *args, path=None, **kwargs):
+    def __init__(self, *args, path=None, flows=None, **kwargs):
         kwargs_ = {k: v for k, v in kwargs.items(
         ) if k in self.get_param_names(include_significant=True)}
         super().__init__(*args, **kwargs_)
+
+        # Check if Child Has Path Var
         self.path = getattr(self, 'path', path)
+
+        # Alias persists
+        self.persist = getattr(self, 'persists', self.persist)
+        
+        # Flow
+        self.flows = flows
 
     @classmethod
     def get_param_values(cls, params, args, kwargs):
@@ -48,11 +56,14 @@ class TaskData(luigi.Task):
         return super(TaskData, cls).get_param_values(params, args, kwargs_)
 
     def reset(self, confirm=True):
+        """
+        Reset a task, eg by deleting output file
+        """
         return self.invalidate(confirm)
 
     def invalidate(self, confirm=True):
         """
-        Invalidate a task, eg by deleting output file
+        Reset a task, eg by deleting output file
         """
         if confirm:
             c = input(
@@ -70,7 +81,7 @@ class TaskData(luigi.Task):
     @d6tcollect._collectClass
     def complete(self, cascade=True):
         """
-        Invalidate a task, eg by deleting output file
+        Check if a task is complete by checking if output exists, eg if output file exists
         """
         complete = super().complete()
         if d6tflow.settings.check_dependencies and cascade and not getattr(self, 'external', False):
@@ -79,8 +90,23 @@ class TaskData(luigi.Task):
         return complete
 
     # Private Get Path Function
-    # TODO: Check if we Refactor
-    def _getpath(self, dirpath, k, subdir=True):
+    def _getpath(self, k, subdir=True, check_pipe=False):
+        # Get Output dir
+        # Check if using d6tpipe
+        if check_pipe and hasattr(self, 'pipename'):
+            import d6tflow.pipes
+            dirpath = d6tflow.pipes.get_dirpath(self.pipename)
+        # Class has set Path
+        elif self.path is not None:
+            dirpath = pathlib.Path(self.path)
+        # Default Settings
+        else:
+            dirpath = settings.dirpath
+
+        # Add Group
+        if hasattr(self, 'task_group'):
+            dirpath = dirpath / f"/group={getattr(self, 'task_group')}"
+
         # Get Path
         tidroot = getattr(self, 'target_dir', self.task_id.split('_')[0])
         fname = '{}-{}'.format(self.task_id, k) if (settings.save_with_param and getattr(
@@ -97,20 +123,8 @@ class TaskData(luigi.Task):
         """
         Similar to luigi task output
         """
-        # Get Output dir
-        # Check if using d6tpipe
-        if hasattr(self, 'pipename'):
-            import d6tflow.pipes
-            dirpath = d6tflow.pipes.get_dirpath(self.pipename)
-        # Class has set Path
-        elif self.path is not None:
-            dirpath = pathlib.Path(self.path)
-        # Default Settings
-        else:
-            dirpath = settings.dirpath
-
         save_ = getattr(self, 'persist', [])
-        output = dict([(k, self.target_class(self._getpath(dirpath, k)))
+        output = dict([(k, self.target_class(self._getpath(k, check_pipe=True)))
                        for k in save_])
         if self.persist == ['data']:  # 1 data shortcut
             output = output['data']
@@ -183,8 +197,17 @@ class TaskData(luigi.Task):
             raise RuntimeError(
                 'Cannot load, task not complete, run flow first')
 
-        # Check Keys
+        # Check Keys is not empty
         keys = self.persist if keys is None else keys
+        # Not List
+        if type(keys) is not list:
+            if not keys in self.persist:
+                raise IndexError('Key name does not match')
+        else:
+            for key in keys:
+                if not key in self.persist:
+                    raise IndexError('Key name does not match')
+
         if self.persist == ['data']:  # 1 data shortcut
             return self.output().load()
         # Get Data
@@ -194,9 +217,9 @@ class TaskData(luigi.Task):
         # Return As List
         if not as_dict:
             data = list(data.values())
-        # If Keys len == 1
-        if type(keys) is list and len(keys) == 1 or type(keys) is not list:
-             data = data[0]
+        # If Keys is not a list
+        if type(keys) is not list:
+            data = data[0]
         
         # Return
         return data
@@ -276,14 +299,8 @@ class TaskData(luigi.Task):
         return dict(zip(tasks, meta))
 
     def _get_meta_path(self, task):
-        if self.path:
-            dirpath = pathlib.Path(self.path)
-        else:
-            dirpath = d6tflow.settings.dirpath
-
-        meta_path = task._getpath(
-            dirpath, 'meta'
-        ).with_suffix('.pickle')
+        # Get Meta Path
+        meta_path = task._getpath('meta').with_suffix('.pickle')
         meta_path.parent.mkdir(exist_ok=True, parents=True)
         return meta_path
 
@@ -376,7 +393,7 @@ class TaskCSVGZPandas(TaskData):
 
 class TaskExcelPandas(TaskData):
     """
-    Task which saves to CSV
+    Task which saves to Excel
     """
     target_class = d6tflow.targets.ExcelPandasTarget
     target_ext = 'xlsx'
