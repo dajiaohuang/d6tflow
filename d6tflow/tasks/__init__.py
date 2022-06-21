@@ -393,7 +393,7 @@ class TaskCSVGZPandas(TaskData):
 
 class TaskExcelPandas(TaskData):
     """
-    Task which saves to CSV
+    Task which saves to Excel
     """
     target_class = d6tflow.targets.ExcelPandasTarget
     target_ext = 'xlsx'

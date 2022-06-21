@@ -12,8 +12,9 @@ from luigi.parameter import (
     NumericalParameter, ChoiceParameter, OptionalParameter
 )
 
-import d6tcollect
+from pathlib import Path
 
+import d6tcollect
 d6tcollect.submit = True
 
 import d6tflow.targets, d6tflow.tasks, d6tflow.settings
@@ -22,7 +23,6 @@ from d6tflow.cache import data as data
 import d6tflow.cache
 
 print('Welcome to d6tflow! For Q&A see https://github.com/d6t/d6tflow')
-
 
 def set_dir(dir=None):
     """
@@ -38,7 +38,6 @@ def set_dir(dir=None):
         dirpath = d6tflow.settings.dirpath
         dirpath.mkdir(exist_ok=True)
     else:
-        from pathlib import Path
         dirpath = Path(dir)
         d6tflow.settings.dir = dir
         d6tflow.settings.dirpath = dirpath
@@ -332,7 +331,7 @@ class Workflow(object):
     def __init__(self, task=None, params=None, path=None, env=None):
         # Set Env 
         if path is not None and env is not None:
-            path = path + f"/env={env}"
+            path = str(path) + f"/env={env}"
         # Will overide other tasks with this task's main path
         elif env is not None:
             path = getattr(task, 'path', d6tflow.settings.dirpath)
@@ -343,8 +342,14 @@ class Workflow(object):
         self.params = self.params if path is None else dict(**self.params, **{'path': path})
         # Add flows to params
         self.params = dict(**self.params, **{'flows': {}})
-        
+        # Default Task
         self.default_task = task
+        # If Task is set, Try to send Flow path to all other tasks
+        if task:
+            # Attach to tasks
+            if not isinstance(task, (list,)):
+                task = [task]
+            self._attach_to_tasks(task, path=path)
 
     def preview(self, tasks=None, indent='', last=True, show_params=True, clip_params=False):
         """
@@ -723,3 +728,152 @@ class WorkflowMulti(object):
         Retuns: An instance of Workflow
         """
         return self.workflow_objs[flow]
+
+from jinja2 import Template
+class FlowExport(object):
+    """
+    Auto generate task files to quickly share workflows with others using d6tpipe.
+
+    Args:
+        tasks (obj): task or list of tasks to share
+        flows (obj): flow or list of flows to get tasks from.
+        save (bool): save to tasks file
+        path_export (str): filename for tasks to export.
+    """
+    def __init__(self, tasks=None, flows=None, save=False, path_export='tasks_d6tpipe.py'):
+        
+        tasks = [] if tasks is None else tasks
+        flows = [] if flows is None else flows
+        if not isinstance(tasks, (list,)):
+            tasks = [tasks]
+        if not isinstance(flows, (list,)):
+            flows = [flows]
+        for flow in flows:
+            task_inst = flow.get_task()
+            t_tasks = taskflow_upstream(task_inst)
+            for task in t_tasks:
+                tasks.append(task)
+
+        self.tasks = tasks
+        self.save = save
+        self.path_export = path_export
+
+        # file templates
+        self.tmpl_tasks = '''
+import d6tflow
+import luigi
+import datetime
+
+{% for task in tasks -%}
+
+class {{task.name}}({{task.class}}):
+    external=True
+    persist={{task.obj.persist}}
+    {% if task.path -%}
+    path="{{task.path}}"
+    {% endif -%}
+    {% if task.obj.pipename -%}
+    pipename={{task.obj.pipename}}
+    {% endif -%}
+    {% if task.obj.task_group -%}
+    task_group="{{task.obj.task_group}}"
+    {% endif -%}
+    {% for param in task.params -%}
+    {{param.name}}={{param.class}}(default={{param.value}})
+    {% endfor %}
+{% endfor %}
+'''
+
+    def generate(self):
+        """
+        Generate output files
+        """
+        tasksPrint = []
+        for task in self.tasks:
+                if getattr(task, 'export', True):
+                    class_ = next(c for c in type(task).__mro__ if 'd6tflow.tasks.' in str(c)) # type(task).__mro__[1]
+
+                    # Get Path
+                    task_path = getattr(task, 'path', None)
+                    task_path = Path(task_path) if task_path else None
+
+                    # Create Dict
+                    taskPrint = {'name': task.__class__.__name__, 'class': class_.__module__ + "." + class_.__name__,
+                                    'obj': task, 'persist': task.persist, 'path': task_path,
+                                        'params': [{'name': param[0],
+                                            'class': f'{param[1].__class__.__module__}.{param[1].__class__.__name__}',
+                                            'value': repr(getattr(task,param[0]))} for param in task.get_params()]} # param[1]._default
+                    tasksPrint.append(taskPrint)
+
+        tasksPrint[-1], tasksPrint[0:-1] = tasksPrint[0], tasksPrint[1:]
+
+        # Print or Save to File
+        if not self.save:
+            print(Template(self.tmpl_tasks).render(tasks=tasksPrint))
+        else:
+            # Write Tasks
+            with open(self.path_export, 'w') as fh:
+                fh.write(Template(self.tmpl_tasks).render(tasks=tasksPrint))
+
+import importlib.util
+import inspect
+class FlowImport(object):
+    """
+    Import a specific module from a directory.
+
+    Args:
+        path (str): path to the dir to import from
+        module (str): the module name to import
+        path_data (str): path to the data file; if not absolute will be appended to path
+    """
+    def __init__(self, path=None, module=None, path_data=None):
+        # INIT
+        self.path = path
+        self.module = module
+        self.tasks = {}
+        
+        # if path_data is an absolute path, use that, else append to path)
+        if Path(path_data).is_absolute():
+            self.dirpath = path_data
+        else:
+            self.dirpath = Path(path) / Path(path_data)
+        
+        # Check if name ends with .py
+        if not str(module).endswith(".py"):
+            module = str(module) + ".py"
+        # Check if exists
+        path_to_file = Path(path) / Path(module)
+        if (path_to_file).exists():
+            path = Path(path) / Path(module)
+        else:
+            raise ValueError("Path {} not found.".format((Path(path) / Path(module))))
+
+        # Get Module, Tasks, Dirpath
+        self.module_obj = self._module_from_file(module, path)
+        self._get_tasks()
+
+    def _get_tasks(self):
+        tasks = {}
+        for name, obj in inspect.getmembers(self.module_obj):
+            if inspect.isclass(obj) and type(obj) is luigi.task_register.Register:
+                tasks[name] = obj
+        # Convert to DotDict so that we can use .
+        self.tasks = dotdict(tasks)
+
+    def _module_from_file(self, module_name, file_path):
+        try:
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        except:
+            print("Module {} not found.".format(module_name))
+            return None
+
+# Helper Class
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
