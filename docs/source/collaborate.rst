@@ -13,6 +13,14 @@ This makes sharing flow output and handing projects off to others very seamless.
 
 Exporting Tasks
 ------------------------------------------------------------
+.. code-block:: python
+
+    import d6tflow.pipes
+
+    # auto generate 'tasks_d6tpipe.py' and 'run_d6tpipe.py' for data consumer
+    d6tflow.pipes.FlowExport(tasks=task,pipename=cfg_pipe).generate()
+    d6tflow.pipes.FlowExport(flows=flow,pipename='ignore').generate()
+
 
 You can Export your tasks into a new File or print the tasks in the console.
 All parameters, paths, task_group will be exported.
