@@ -13,14 +13,6 @@ This makes sharing flow output and handing projects off to others very seamless.
 
 Exporting Tasks
 ------------------------------------------------------------
-.. code-block:: python
-
-    import d6tflow.pipes
-
-    # auto generate 'tasks_d6tpipe.py' and 'run_d6tpipe.py' for data consumer
-    d6tflow.pipes.FlowExport(tasks=task,pipename=cfg_pipe).generate()
-    d6tflow.pipes.FlowExport(flows=flow,pipename='ignore').generate()
-
 
 You can Export your tasks into a new File or print the tasks in the console.
 All parameters, paths, task_group will be exported.
@@ -56,3 +48,33 @@ You can import tasks from other folder and files into the file you want to run t
     flow_import.run()
 
 FlowImport returns an object which contains all the Tasks imported from the file under `tasks` and dirpath which is the data directory location.
+
+Attaching Flows
+------------------------------------------------------------
+
+In more complex projects, users need to import data from many sources.
+Flows can be attached together in order to access the data generated in one flow inside the other.
+
+.. code-block:: python
+    class Task1():
+        def run(self):
+            #Save
+
+    @d6tflow.requires(Task1)
+    class Task2():
+        def run(self):
+            #Save
+
+    class Task3():
+        def run():
+            temp_flow_df = self.flows['flow'].outputLoad()
+            self.save(temp_flow_df)
+
+    # Define Both flows and run the first
+    flow = d6tflow.workflow(Task1)
+    flow2 = d6tflow.workflow(Task3)
+    flow.run()
+
+    # Attach the First Flow to the Second
+    flow2.attach(flow, 'flow')
+    flow2.run()
