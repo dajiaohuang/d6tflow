@@ -18,6 +18,7 @@ You can Export your tasks into a new File or print the tasks in the console.
 All parameters, paths, task_group will be exported.
 
 .. code-block:: python
+
     class Task1():
         def run(self):
             #Save
@@ -43,6 +44,7 @@ Importing Tasks
 You can import tasks from other folder and files into the file you want to run the flow in.
 
 .. code-block:: python
+
     scraper = d6tflow.FlowImport(path='../another-project/', module='tasks_export.py', path_data='data/')
     flow_import = d6tflow.Workflow(scraper.tasks.TaskScrape, path=scraper.dirpath, env='prod')
     flow_import.run()
@@ -56,6 +58,7 @@ In more complex projects, users need to import data from many sources.
 Flows can be attached together in order to access the data generated in one flow inside the other.
 
 .. code-block:: python
+
     class Task1():
         def run(self):
             #Save
