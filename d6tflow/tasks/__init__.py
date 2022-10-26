@@ -162,7 +162,10 @@ class TaskData(luigi.Task):
                             data[k] = [v.load(cached) for k, v in v.items()]
                     else:
                         data[k] = v.load(cached)
-            # Convert to list if dependency is single and as_dict is False
+            # Return DF if Single Key
+            if isinstance(keys, str) and not as_dict:
+                return data[keys]
+            # Convert to list if dependecy is Single
             if (type_of_requires != dict or task is not None) and not as_dict:
                 data = list(data.values())
         elif isinstance(input, list):
@@ -209,7 +212,9 @@ class TaskData(luigi.Task):
                     raise IndexError('Key name does not match')
 
         if self.persist == ['data']:  # 1 data shortcut
-            return self.output().load()
+            persist_data = self.output().load()
+            return persist_data
+
         # Get Data
         data = {k: v.load(cached)
                 for k, v in self.output().items() if k in keys}
