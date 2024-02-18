@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='d6tflow',
-    version='0.2.6',
+    version='0.2.8',
     packages=['d6tflow','d6tflow.targets','d6tflow.tasks'],
     url='https://github.com/d6t/d6tflow',
     license='MIT',
@@ -11,10 +11,12 @@ setup(
     description='For data scientists and data engineers, d6tflow is a python library which makes building complex data science workflows easy, fast and intuitive.',
     long_description='d6tflow is a python library which makes it easier to build data workflows'
         'See https://github.com/d6t/d6tflow for details',
-    install_requires=['luigi>=3.0.1', 'pandas', 'pyarrow','d6tcollect>=1.0.6'
+    install_requires=['luigi>=3.0.1', 'pandas', 'pyarrow','d6tcollect>=1.0.6','Jinja2'
     ],
     extras_require={
         'dask': ['toolz','dask[dataframe]'],
+        'gcs': ['gcsfs','universal_pathlib'],
+        's3': ['s3fs','universal_pathlib'],
         'pipe': ['d6tpipe', 'jinja2']},
 include_package_data=True,
     python_requires='>=3.5',

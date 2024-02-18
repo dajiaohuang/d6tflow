@@ -13,6 +13,7 @@ from luigi.parameter import (
 )
 
 from pathlib import Path
+from jinja2 import Template
 
 import d6tcollect
 d6tcollect.submit = True
@@ -44,6 +45,39 @@ def set_dir(dir=None):
 
     d6tflow.settings.isinit = True
     return dirpath
+
+def enable_cloud_storage(protocol, bucket, prefix=None):
+    """
+    Initialize cloud storage
+    Uses https://github.com/orgs/fsspec/repositories
+
+    Args:
+        protocol (str): fsspec eg gcs, s3, dropbox etc. See https://pypi.org/project/universal-pathlib/
+        bucket (str): bucket name
+        prefix (str): prefix similar to folder
+
+    """
+    from pathlib import PurePosixPath
+    fs_path = PurePosixPath(bucket)
+    if prefix is not None:
+        fs_path = fs_path / prefix
+    d6tflow.settings.cloud_fs_prefix = f'{protocol}://{fs_path}'
+    d6tflow.settings.cloud_fs_enabled = True
+
+    return d6tflow.settings.cloud_fs_prefix
+
+def enable_gcs(bucket, prefix=None):
+    """
+    Initialize google cloud storage, for reference see https://cloud.google.com/storage/docs/listing-objects
+    Uses https://gcsfs.readthedocs.io/en/latest/
+
+    Args:
+        bucket (str): bucket name
+        prefix (str): prefix similar to folder
+
+
+    """
+    return enable_cloud_storage('gcs', bucket, prefix)
 
 
 @d6tcollect.collect
@@ -729,7 +763,6 @@ class WorkflowMulti(object):
         """
         return self.workflow_objs[flow]
 
-from jinja2 import Template
 class FlowExport(object):
     """
     Auto generate task files to quickly share workflows with others using d6tpipe.

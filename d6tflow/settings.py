@@ -21,3 +21,7 @@ def set_parameter_len(nparams=20, len=64):
 set_parameter_len()
 
 uri = None
+
+# cloud storage
+cloud_fs_prefix = None
+cloud_fs_enabled = False

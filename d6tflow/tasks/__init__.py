@@ -117,6 +117,11 @@ class TaskData(luigi.Task):
         else:
             path = dirpath / fname
 
+        # use cloud storage
+        if settings.cloud_fs_enabled:
+            from pathlib import PurePosixPath  # needed on windows
+            path = f'{settings.cloud_fs_prefix}/{PurePosixPath(path)}'
+
         return path
 
     def output(self):

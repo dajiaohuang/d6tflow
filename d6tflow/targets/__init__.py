@@ -60,7 +60,11 @@ class _LocalPathTarget(luigi.LocalTarget):
 
     def __init__(self, path=None):
         super().__init__(path)
-        self.path = pathlib.Path(path)
+        if settings.cloud_fs_enabled:
+            import upath
+            self.path = upath.UPath(path)
+        else:
+            self.path = pathlib.Path(path)
         (self.path).parent.mkdir(parents=True, exist_ok=True)
 
     def exists(self):
@@ -257,7 +261,7 @@ class JsonTarget(DataTarget):
 
         """
         def read_json(path, **opts):
-            with open(path, 'r') as fhandle:
+            with path.open('r') as fhandle:
                 df = json.load(fhandle)
             return df['data']
         return super().load(read_json, cached, **kwargs)
@@ -275,9 +279,8 @@ class JsonTarget(DataTarget):
 
         """
         def write_json(path, _dict_, **opts):
-            with open(path, 'w') as fhandle:
+            with path.open('w') as fhandle:
                 json.dump(_dict_, fhandle, **opts)
-        (self.path).parent.mkdir(parents=True, exist_ok=True)
         opts = {**{'indent':4},**kwargs}
         write_json(self.path, {'data':dict_}, **opts)
         return self.path
@@ -300,7 +303,7 @@ class PickleTarget(DataTarget):
 
         """
         def funload(x):
-            with open(x,"rb" ) as fhandle:
+            with x.open("rb" ) as fhandle:
                 data = pickle.load(fhandle)
             return data
         return super().load(funload, cached, **kwargs)
@@ -317,8 +320,7 @@ class PickleTarget(DataTarget):
         Returns: filename
 
         """
-        (self.path).parent.mkdir(parents=True, exist_ok=True)
-        with open(self.path, "wb") as fhandle:
+        with self.path.open("wb") as fhandle:
             pickle.dump(obj, fhandle, **kwargs)
         return self.path
 
