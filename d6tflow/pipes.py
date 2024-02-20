@@ -1,5 +1,5 @@
 import d6tflow
-import d6tcollect
+
 
 try:
     import d6tpipe
@@ -7,7 +7,7 @@ except:
     ModuleNotFoundError("Optional requirement d6tpipe not found, install with `pip install d6tpipe`")
 
 
-#@d6tcollect.collect
+#
 def init(default_pipe_name, profile=None, local_pipe=False, local_api=False, reset=False, api=None, set_dir=True, api_args=None, pipe_args=None):
     """
     Initialize d6tpipe
@@ -51,7 +51,7 @@ def _assertinit():
         raise RuntimeError('d6tpipe not initialized, run d6tflow.pipes.init()')
 
 
-#@d6tcollect.collect
+#
 def init_pipe(name=None, **kwargs):
     _assertinit()
     name = d6tflow.cache.pipe_default_name if name is None else name
@@ -116,7 +116,7 @@ def _all_pipes(task, push=False):
         pipenames = set([t.get_pipename() for t in tasks])
     return {name:get_pipe(name) for name in pipenames}
 
-@d6tcollect.collect
+
 def _all_runfun(task, fun, push=False, **kwargs):
     pipes = _all_pipes(task,push)
     def runfun(p):

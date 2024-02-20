@@ -4,12 +4,12 @@ import json
 import pickle
 import pathlib
 
-#import d6tcollect
+#
 
 from d6tflow.cache import data as cache
 import d6tflow.settings as settings
 import d6tflow.utils
-import d6tcollect
+
 
 class CacheTarget(luigi.LocalTarget):
     """
@@ -35,7 +35,7 @@ class CacheTarget(luigi.LocalTarget):
         else:
             raise RuntimeError('Target does not exist, make sure task is complete')
 
-    @d6tcollect._collectClass
+    
     def save(self, df):
         """
         Save dataframe to in-memory cache
@@ -141,7 +141,7 @@ class CSVPandasTarget(DataTarget):
         """
         return super().load(pd.read_csv, cached, **kwargs)
 
-    @d6tcollect._collectClass
+    
     def save(self, df, **kwargs):
         """
         Save dataframe to csv
@@ -162,7 +162,7 @@ class CSVGZPandasTarget(CSVPandasTarget):
 
     """
 
-    @d6tcollect._collectClass
+    
     def save(self, df, **kwargs):
         """
         Save dataframe to csv gzip
@@ -195,7 +195,7 @@ class ExcelPandasTarget(DataTarget):
         """
         return super().load(pd.read_excel, cached, **kwargs)
 
-    @d6tcollect._collectClass
+    
     def save(self, df, **kwargs):
         """
         Save dataframe to Excel
@@ -228,7 +228,7 @@ class PqPandasTarget(DataTarget):
         """
         return super().load(pd.read_parquet, cached, **kwargs)
 
-    @d6tcollect._collectClass
+    
     def save(self, df, **kwargs):
         """
         Save dataframe to parquet
@@ -266,7 +266,7 @@ class JsonTarget(DataTarget):
             return df['data']
         return super().load(read_json, cached, **kwargs)
 
-    @d6tcollect._collectClass
+    
     def save(self, dict_, **kwargs):
         """
         Save dict to json
@@ -308,7 +308,7 @@ class PickleTarget(DataTarget):
             return data
         return super().load(funload, cached, **kwargs)
 
-    @d6tcollect._collectClass
+    
     def save(self, obj, **kwargs):
         """
         Save obj to pickle

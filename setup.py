@@ -11,10 +11,11 @@ setup(
     description='For data scientists and data engineers, d6tflow is a python library which makes building complex data science workflows easy, fast and intuitive.',
     long_description='d6tflow is a python library which makes it easier to build data workflows'
         'See https://github.com/d6t/d6tflow for details',
-    install_requires=['luigi>=3.0.1', 'pandas', 'pyarrow','d6tcollect>=1.0.6','Jinja2'
+    install_requires=['luigi>=3.0.1', 'pandas', 'pyarrow','Jinja2'
     ],
     extras_require={
         'dask': ['toolz','dask[dataframe]'],
+        'cloud-base': ['universal_pathlib'],
         'gcs': ['gcsfs','universal_pathlib'],
         's3': ['s3fs','universal_pathlib'],
         'pipe': ['d6tpipe', 'jinja2']},

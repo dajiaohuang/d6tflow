@@ -15,8 +15,6 @@ from luigi.parameter import (
 from pathlib import Path
 from jinja2 import Template
 
-import d6tcollect
-d6tcollect.submit = True
 
 import d6tflow.targets, d6tflow.tasks, d6tflow.settings
 import d6tflow.utils
@@ -80,7 +78,7 @@ def enable_gcs(bucket, prefix=None):
     return enable_cloud_storage('gcs', bucket, prefix)
 
 
-@d6tcollect.collect
+
 def preview(tasks, indent='', last=True, show_params=True, clip_params=False):
     """
     Preview task flows
@@ -96,7 +94,7 @@ def preview(tasks, indent='', last=True, show_params=True, clip_params=False):
     print('\n ===== Luigi Execution Preview ===== \n')
 
 
-@d6tcollect.collect
+
 def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1, abort=True,
         execution_summary=None, **kwargs):
     """

@@ -4,7 +4,7 @@ import pathlib
 import luigi
 import luigi.tools.deps
 
-import d6tcollect
+
 
 import d6tflow.targets
 import d6tflow.settings as settings
@@ -78,7 +78,7 @@ class TaskData(luigi.Task):
                 [t.invalidate() for t in self.output().values()]
         return True
 
-    @d6tcollect._collectClass
+    
     def complete(self, cascade=True):
         """
         Check if a task is complete by checking if output exists, eg if output file exists
@@ -314,7 +314,7 @@ class TaskData(luigi.Task):
         meta_path.parent.mkdir(exist_ok=True, parents=True)
         return meta_path
 
-    @d6tcollect._collectClass
+    
     def get_pipename(self):
         """
         Get associated pipe name

@@ -2,7 +2,7 @@ import d6tflow.tasks as tasks
 import d6tflow
 from functools import wraps
 import pathlib
-import d6tcollect
+
 
 
 class Workflow:
@@ -40,7 +40,7 @@ class Workflow:
             return wrapper
         self.common_decorator = common_decorator
 
-    @d6tcollect._collectClass
+    
     def task(self, task_type: d6tflow.tasks.TaskData):
         """
             Flow step decorator.
@@ -64,7 +64,7 @@ class Workflow:
         self.object_count += 1
         return self.common_decorator
 
-    @d6tcollect._collectClass
+    
     def requires(self, *args, **kwargs):
         """
             Flow requires decorator.
@@ -97,7 +97,7 @@ class Workflow:
 
         return self.common_decorator
 
-    @d6tcollect._collectClass
+    
     def params(self, **params):
         """
             Flow parameters decorator.
@@ -115,7 +115,7 @@ class Workflow:
             setattr(self.steps[self.current_step], param, params[param])
         return self.common_decorator
 
-    @d6tcollect._collectClass
+    
     def persists(self, to_persist: list):
         """
             Flow persists decorator.
@@ -143,7 +143,7 @@ class Workflow:
         else:
             d6tflow.preview(self.steps[name]())
 
-    @d6tcollect._collectClass
+    
     def run(self, funcs_to_run, params: dict = None, multi_params: dict = None, *args, **kwargs):
         """
             Runs flow steps locally. See luigi.build for additional details

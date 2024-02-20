@@ -5,12 +5,11 @@ import fuckit
 import warnings
 import luigi
 import d6tflow
-import d6tcollect
+
 
 
 class TestMain:
     # Vars
-    d6tcollect.submit = False
     pathdata = d6tflow.set_dir('data/')
     d6tflow.settings.log_level = 'WARNING'
 
