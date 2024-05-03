@@ -69,6 +69,7 @@ class TestMain:
         df4 = task.input().load()
         df4['a'] = df4['a'] * 2 * 2
         task.save({'df2': df2, 'df4': df4})
+        task.save([df2, df4],from_list=True)
 
     @d6tflow.requires(Task1)
     class Task2(d6tflow.tasks.TaskPqPandas):

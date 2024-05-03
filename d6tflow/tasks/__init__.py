@@ -234,7 +234,7 @@ class TaskData(luigi.Task):
         # Return
         return data
 
-    def save(self, data, **kwargs):
+    def save(self, data, from_list=False, **kwargs):
         """
         Persist data to target
 
@@ -247,6 +247,8 @@ class TaskData(luigi.Task):
             self.output().save(data, **kwargs)
         else:
             targets = self.output()
+            if from_list:
+                data = dict(zip(self.persist, data))
             if not set(data.keys()) == set(targets.keys()):
                 raise ValueError(
                     'Save dictionary needs to consistent with Task.persist')
