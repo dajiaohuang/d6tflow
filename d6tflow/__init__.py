@@ -13,8 +13,6 @@ from luigi.parameter import (
 )
 
 from pathlib import Path
-from jinja2 import Template
-
 
 import d6tflow.targets, d6tflow.tasks, d6tflow.settings
 import d6tflow.utils
@@ -96,7 +94,7 @@ def preview(tasks, indent='', last=True, show_params=True, clip_params=False):
 
 
 def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1, abort=True,
-        execution_summary=None, **kwargs):
+        execution_summary=None, main_thread_only=False, **kwargs):
     """
     Run tasks locally. See luigi.build for additional details
 
@@ -109,9 +107,15 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
         workers (int): number of workers
         abort (bool): on errors raise exception
         execution_summary (bool): print execution summary
+        main_thread_only (bool): if True, only works in main thread of the main interpreter. Default false so it can run in apps and workers.
         kwargs: keywords to pass to luigi.build
 
     """
+
+    # fix signal only works in main thread of the main interpreter
+    if not main_thread_only:
+        luigi.worker.worker().no_install_shutdown_handler = True
+
     if not isinstance(tasks, (list,)):
         tasks = [tasks]
 
@@ -772,7 +776,7 @@ class FlowExport(object):
         path_export (str): filename for tasks to export.
     """
     def __init__(self, tasks=None, flows=None, save=False, path_export='tasks_d6tpipe.py'):
-        
+
         tasks = [] if tasks is None else tasks
         flows = [] if flows is None else flows
         if not isinstance(tasks, (list,)):
@@ -819,6 +823,11 @@ class {{task.name}}({{task.class}}):
         """
         Generate output files
         """
+        try:
+            from jinja2 import Template
+        except ModuleNotFoundError:
+            print("module 'jinja2' is not installed. Run: pip install Jinja2")
+
         tasksPrint = []
         for task in self.tasks:
                 if getattr(task, 'export', True):

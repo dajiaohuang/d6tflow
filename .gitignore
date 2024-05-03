@@ -5,6 +5,7 @@
 data/
 tests/.creds.yml
 tests/tmp.py
+tests/tmp*.py
 tests-data/
 local.py
 

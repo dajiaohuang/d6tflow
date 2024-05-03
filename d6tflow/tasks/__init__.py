@@ -78,7 +78,7 @@ class TaskData(luigi.Task):
                 [t.invalidate() for t in self.output().values()]
         return True
 
-    
+
     def complete(self, cascade=True):
         """
         Check if a task is complete by checking if output exists, eg if output file exists
@@ -201,9 +201,9 @@ class TaskData(luigi.Task):
 
         Returns: list or dict of all task output
         """
-        if not self.complete():
+        if not self.complete(cascade=False):
             raise RuntimeError(
-                'Cannot load, task not complete, run flow first')
+                f'Cannot load {self.__class__}, task not complete, run flow first')
 
         # Check Keys is not empty
         keys = self.persist if keys is None else keys
@@ -314,7 +314,7 @@ class TaskData(luigi.Task):
         meta_path.parent.mkdir(exist_ok=True, parents=True)
         return meta_path
 
-    
+
     def get_pipename(self):
         """
         Get associated pipe name
