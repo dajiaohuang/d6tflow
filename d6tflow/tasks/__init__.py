@@ -264,25 +264,29 @@ class TaskData(luigi.Task):
     def saveMeta(self, data):
         self.metaSave(data)
 
-    def metaLoad(self):
-        if isinstance(self.requires(), dict):
+    def metaLoad(self,key=None):
+        if key is not None:
+            inputs = self.requires()
+            _input = key
+            path = self._get_meta_path(inputs[_input])
+            output = pickle.load(open(path, "rb"))
+        elif isinstance(self.requires(), dict):
             output = {}
             inputs = self.requires()
             for _input in inputs:
                 path = self._get_meta_path(inputs[_input])
                 output[_input] = pickle.load(open(path, "rb"))
-            return output
         elif isinstance(self.requires(), list):
             output = []
             inputs = self.requires()
             for _input in inputs:
                 path = self._get_meta_path(_input)
                 output.append(pickle.load(open(path, "rb")))
-            return output
         else:
             _input = self.requires()
             path = self._get_meta_path(_input)
-            return pickle.load(open(path, "rb"))
+            output = pickle.load(open(path, "rb"))
+        return output
 
     def outputLoadMeta(self):
         if not self.complete(cascade=False):
