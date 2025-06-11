@@ -85,3 +85,50 @@ def params_generator_single(dict_,params_base=None):
         params[i] = {**{key: v}, **params_base} if params_base is not None else {key: v}
 
     return params
+
+def params_generator_dictlist(params_dict, params_base=None):
+    """
+    Generate permutations of parameter values from a dictionary of lists.
+    
+    Args:
+        params_dict (dict): Dictionary where keys are parameter names and values are lists of possible values
+        params_base (dict, optional): Base parameters to be added to all combinations
+        
+    Returns:
+        dict: Dictionary where keys are iteration numbers and values are dictionaries of parameter combinations
+        
+    Example:
+        params_values1 = ['a', 'b']
+        params_values2 = ['c', 'd']
+        params = {'param1': params_values1, 'param2': params_values2}
+        params_base = {'base_param': 'value'}
+        result = params_generator_dictlist(params, params_base)
+        # Returns: {0: {'param1': 'a', 'param2': 'c', 'base_param': 'value'}, ...}
+    """
+    # Get all parameter names and their possible values
+    param_names = list(params_dict.keys())
+    param_values = list(params_dict.values())
+    
+    # Calculate total number of combinations
+    total_combinations = 1
+    for values in param_values:
+        total_combinations *= len(values)
+    
+    # Initialize result dictionary
+    result = {}
+    
+    # Generate all combinations
+    for i in range(total_combinations):
+        combination = {}
+        temp = i
+        for j, values in enumerate(param_values):
+            idx = temp % len(values)
+            combination[param_names[j]] = values[idx]
+            temp //= len(values)
+        # Merge with params_base if provided
+        if params_base is not None:
+            combination = {**combination, **params_base}
+        result[i] = combination
+    
+    return result
+
