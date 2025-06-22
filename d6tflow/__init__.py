@@ -578,6 +578,7 @@ class WorkflowMulti(object):
 
     def __init__(self, task=None, params=None, path=None, env=None):
         self.params = params
+        self.task_name = task.__class__.__name__ if task else 'WorkflowMulti default'
         if params is not None and type(params) not in [dict, list]:
             raise Exception("Params has to be a dictionary with key defining the flow name or a list")
         if type(params) == dict:
@@ -691,20 +692,54 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoadAll(task, keys, as_dict, cached)
         return data
 
+    def _confirm_reset(self, confirm, operation_name="reset"):
+        """
+        Helper method to handle confirmation logic for reset operations
+        
+        Args:
+            confirm (bool): whether to ask for confirmation
+            operation_name (str): name of the operation for the confirmation message
+            
+        Returns:
+            bool: True if confirmed, False otherwise
+        """
+        if confirm:
+            c = input(
+                'Confirm invalidating task: {} (y/n). PS You can disable this message by passing confirm=False'.format(
+                    self.task_name))
+        else:
+            c = 'y'
+        return c == 'y'
+
     def reset(self, task=None, flow=None, confirm=False):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
-        return {self.workflow_objs[exp_name].reset(task, confirm) for exp_name in self.params.keys()}
+        
+        # For multiple flows, ask for confirmation once if confirm=True
+        if not self._confirm_reset(confirm, "reset"):
+            return False
+            
+        return {self.workflow_objs[exp_name].reset(task, confirm=False) for exp_name in self.params.keys()}
 
     def reset_downstream(self, task=None, flow=None, confirm=False):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
-        return {self.workflow_objs[exp_name].reset_downstream(task, confirm=confirm) for exp_name in self.params.keys()}
+        
+        # For multiple flows, ask for confirmation once if confirm=True
+        if not self._confirm_reset(confirm, "reset_downstream"):
+            return False
+            
+        return {self.workflow_objs[exp_name].reset_downstream(task, confirm=False) for exp_name in self.params.keys()}
 
     def reset_upstream(self, task=None, flow=None, confirm=False):
         if flow is not None:
             return self.workflow_objs[flow].reset(task, confirm)
-        return {self.workflow_objs[exp_name].reset_upstream(task, confirm) for exp_name in self.params.keys()}
+        
+        # For multiple flows, ask for confirmation once if confirm=True
+        if not self._confirm_reset(confirm, "reset_upstream"):
+            return False
+            
+        return {self.workflow_objs[exp_name].reset_upstream(task, confirm=False) for exp_name in self.params.keys()}
 
     def preview(self, tasks=None, flow=None, indent='', last=True, show_params=True, clip_params=False):
         """
