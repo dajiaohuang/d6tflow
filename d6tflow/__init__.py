@@ -578,7 +578,7 @@ class WorkflowMulti(object):
 
     def __init__(self, task=None, params=None, path=None, env=None):
         self.params = params
-        self.task_name = task.__class__.__name__ if task else 'WorkflowMulti default'
+        self._task_name = task.task_family if task else 'WorkflowMulti default task'
         if params is not None and type(params) not in [dict, list]:
             raise Exception("Params has to be a dictionary with key defining the flow name or a list")
         if type(params) == dict:
@@ -706,7 +706,7 @@ class WorkflowMulti(object):
         if confirm:
             c = input(
                 'Confirm invalidating task: {} (y/n). PS You can disable this message by passing confirm=False'.format(
-                    self.task_name))
+                    self._task_name))
         else:
             c = 'y'
         return c == 'y'
