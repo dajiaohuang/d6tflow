@@ -1,5 +1,6 @@
 import pickle
 import pathlib
+import json
 
 import luigi
 import luigi.tools.deps
@@ -255,50 +256,95 @@ class TaskData(luigi.Task):
             for k, v in data.items():
                 targets[k].save(v, **kwargs)
 
-    def metaSave(self, data):
+    def _get_meta_path_with_format(self, task, format='pickle'):
+        """Get metadata path for a given task and format"""
+        if format == 'pickle':
+            return self._get_meta_path(task)
+        else:  # json
+            return task._getpath('meta').with_suffix('.json')
+
+    def _make_path_cloud_compatible(self, path):
+        """Convert path to cloud-compatible path if cloud storage is enabled"""
+        if settings.cloud_fs_enabled:
+            import upath
+            return upath.UPath(path)
+        return pathlib.Path(path)
+
+    def _save_meta_internal(self, data, format='pickle'):
+        """Internal method to save metadata in specified format"""
         self.metadata = data
-        path = self._get_meta_path(self)
-        with open(path, "wb") as fh:
-            pickle.dump(data, fh)
+        if format == 'pickle':
+            path = self._get_meta_path(self)
+            path = self._make_path_cloud_compatible(path)
+            with path.open("wb") as fh:
+                pickle.dump(data, fh)
+        else:  # json
+            path = self._getpath('meta').with_suffix('.json')
+            path = self._make_path_cloud_compatible(path)
+            path.parent.mkdir(exist_ok=True, parents=True)
+            with path.open("w") as fh:
+                json.dump(data, fh)
+
+    def _load_meta_from_task(self, task, format='pickle'):
+        """Load metadata from a single task"""
+        if format == 'pickle':
+            path = self._get_meta_path(task)
+            path = self._make_path_cloud_compatible(path)
+            with path.open("rb") as fh:
+                return pickle.load(fh)
+        else:  # json
+            path = task._getpath('meta').with_suffix('.json')
+            path = self._make_path_cloud_compatible(path)
+            with path.open("r") as fh:
+                return json.load(fh)
+
+    def _input_load_meta_internal(self, key=None, format='pickle'):
+        """Internal method to load metadata from input tasks"""
+        inputs = self.requires()
+
+        if key is not None:
+            return self._load_meta_from_task(inputs[key], format)
+        elif isinstance(inputs, dict):
+            return {k: self._load_meta_from_task(v, format) for k, v in inputs.items()}
+        elif isinstance(inputs, list):
+            return [self._load_meta_from_task(task, format) for task in inputs]
+        else:
+            return self._load_meta_from_task(inputs, format)
+
+    def metaSave(self, data):
+        self._save_meta_internal(data, format='pickle')
 
     def saveMeta(self, data):
         self.metaSave(data)
 
-    def metaLoad(self,key=None):
-        if key is not None:
-            inputs = self.requires()
-            _input = key
-            path = self._get_meta_path(inputs[_input])
-            output = pickle.load(open(path, "rb"))
-        elif isinstance(self.requires(), dict):
-            output = {}
-            inputs = self.requires()
-            for _input in inputs:
-                path = self._get_meta_path(inputs[_input])
-                output[_input] = pickle.load(open(path, "rb"))
-        elif isinstance(self.requires(), list):
-            output = []
-            inputs = self.requires()
-            for _input in inputs:
-                path = self._get_meta_path(_input)
-                output.append(pickle.load(open(path, "rb")))
-        else:
-            _input = self.requires()
-            path = self._get_meta_path(_input)
-            output = pickle.load(open(path, "rb"))
-        return output
+    def saveMetaJson(self, data):
+        self._save_meta_internal(data, format='json')
+
+    def metaLoad(self, key=None):
+        return self._input_load_meta_internal(key, format='pickle')
+
+    def inputLoadMetaJson(self, key=None):
+        return self._input_load_meta_internal(key, format='json')
 
     def outputLoadMeta(self):
         if not self.complete(cascade=False):
             raise RuntimeError(
                 'Cannot load, task not complete, run flow first')
-        path = self._get_meta_path(self)
         try:
-            data = pickle.load(open(path, "rb"))
+            return self._load_meta_from_task(self, format='pickle')
         except FileNotFoundError:
             raise RuntimeError(
                 f"No metadata to load for task {self.task_family}")
-        return data
+
+    def outputLoadMetaJson(self):
+        if not self.complete(cascade=False):
+            raise RuntimeError(
+                'Cannot load, task not complete, run flow first')
+        try:
+            return self._load_meta_from_task(self, format='json')
+        except FileNotFoundError:
+            raise RuntimeError(
+                f"No metadata to load for task {self.task_family}")
 
     def outputLoadAllMeta(self):
         if not self.complete(cascade=False):

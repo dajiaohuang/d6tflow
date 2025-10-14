@@ -82,9 +82,18 @@ def params_generator_single(dict_,params_base=None):
 
     params = {}
     for i, v in enumerate(list_):
-        params[i] = {**{key: v}, **params_base} if params_base is not None else {key: v}
+        params[i] = {**params_base, **{key: v}} if params_base is not None else {key: v}
 
     return params
+
+def params_generator_df(df, params_base = None) -> dict:
+    params = {}
+    for i, row in df.dropna().iterrows():
+        row_dict = row.to_dict()
+        combined = {**params_base, **row_dict} if params_base else row_dict
+        params[i] = combined
+    return params
+
 
 def params_generator_dictlist(params_dict, params_base=None):
     """
@@ -127,7 +136,7 @@ def params_generator_dictlist(params_dict, params_base=None):
             temp //= len(values)
         # Merge with params_base if provided
         if params_base is not None:
-            combination = {**combination, **params_base}
+            combination = {**params_base, **combination}
         result[i] = combination
     
     return result

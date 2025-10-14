@@ -77,19 +77,24 @@ def enable_gcs(bucket, prefix=None):
 
 
 
-def preview(tasks, indent='', last=True, show_params=True, clip_params=False):
+def preview(tasks, indent='', last=True, show_params=True, clip_params=False, print_it=True):
     """
     Preview task flows
 
     Args:
         tasks (obj, list): task or list of tasks
     """
-    print('\n ===== Luigi Execution Preview ===== \n')
+    msg = '\n ===== Luigi Execution Preview ===== \n'
     if not isinstance(tasks, (list,)):
         tasks = [tasks]
     for t in tasks:
-        print(d6tflow.utils.print_tree(t, indent=indent, last=last, show_params=show_params, clip_params=clip_params))
-    print('\n ===== Luigi Execution Preview ===== \n')
+        msg += d6tflow.utils.print_tree(t, indent=indent, last=last, show_params=show_params, clip_params=clip_params)
+    msg += '\n ===== Luigi Execution Preview ===== \n'
+    if print_it:
+        print(msg)
+    else:
+        return msg
+
 
 
 
@@ -387,7 +392,7 @@ class Workflow(object):
                 task = [task]
             self._attach_to_tasks(task, path=path)
 
-    def preview(self, tasks=None, indent='', last=True, show_params=True, clip_params=False):
+    def preview(self, tasks=None, indent='', last=True, show_params=True, clip_params=False, print_it=True):
         """
         Preview task flows with the workflow parameters
 
@@ -397,7 +402,7 @@ class Workflow(object):
         if not isinstance(tasks, (list,)):
             tasks = [tasks]
         tasks_inst = [self.get_task(x) for x in tasks]
-        return preview(tasks=tasks_inst, indent=indent, last=last, show_params=show_params, clip_params=clip_params)
+        return preview(tasks=tasks_inst, indent=indent, last=last, show_params=show_params, clip_params=clip_params, print_it=print_it)
 
     def run(self, tasks=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1,
             abort=True, execution_summary=None, **kwargs):
@@ -470,14 +475,17 @@ class Workflow(object):
         else:
             return output.path
 
-    def complete(self, task=None):
-        return self.get_task(task).complete()
+    def complete(self, task=None, cascade=True):
+        return self.get_task(task).complete(cascade=cascade)
 
     def output(self, task=None):
         return self.get_task(task).output()
 
     def outputLoadMeta(self, task=None):
         return self.get_task(task).outputLoadMeta()
+
+    def outputLoadMetaJson(self, task=None):
+        return self.get_task(task).outputLoadMetaJson()
 
     def outputLoadAll(self, task=None, keys=None, as_dict=False, cached=False):
         """
@@ -672,6 +680,14 @@ class WorkflowMulti(object):
             data[exp_name] = self.workflow_objs[exp_name].outputLoadMeta(task)
         return data
 
+    def outputLoadMetaJson(self, task=None, flow=None):
+        if flow is not None:
+            return self.workflow_objs[flow].outputLoadMetaJson(task)
+        data = {}
+        for exp_name in self.params.keys():
+            data[exp_name] = self.workflow_objs[exp_name].outputLoadMetaJson(task)
+        return data
+
     def outputLoadAll(self, task=None, flow=None, keys=None, as_dict=False, cached=False):
         """
         Load all output from task with the workflow parameters for a flow
@@ -741,7 +757,7 @@ class WorkflowMulti(object):
             
         return {self.workflow_objs[exp_name].reset_upstream(task, confirm=False) for exp_name in self.params.keys()}
 
-    def preview(self, tasks=None, flow=None, indent='', last=True, show_params=True, clip_params=False):
+    def preview(self, tasks=None, flow=None, indent='', last=True, show_params=True, clip_params=False, print_it=True):
         """
         Preview task flows with the workflow parameters for a flow
 
@@ -752,11 +768,11 @@ class WorkflowMulti(object):
         if not isinstance(tasks, (list,)):
             tasks = [tasks]
         if flow is not None:
-            return self.workflow_objs[flow].preview(tasks)
+            return self.workflow_objs[flow].preview(tasks, print_it=print_it)
         data = {}
         for exp_name in self.params.keys():
             data[exp_name] = self.workflow_objs[exp_name].preview(tasks=tasks, indent=indent, last=last,
-                                                                  show_params=show_params, clip_params=clip_params)
+                                                                  show_params=show_params, clip_params=clip_params, print_it=print_it)
         return data
 
     def set_default(self, task):
@@ -951,4 +967,36 @@ class dotdict(dict):
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+
+def runLoad(task, params=None, load=True, taskLoad=None, reset=False):
+
+    params = dict() if params is None else params
+    taskLoad = task if taskLoad is None else taskLoad
+
+    flow = d6tflow.Workflow(task, params)
+    if reset:
+        flow.reset(task)
+    flow.run()
+
+    if load:
+        r = flow.outputLoad(taskLoad)
+        return r
+
+def runIt(task, params=None, reset=False):
+    return runLoad(task, params=params, reset=reset, load=False)
+
+def runIterConcat(task, params, load=True, taskLoad=None, reset=False):
+
+    params = dict() if params is None else params
+    taskLoad = task if taskLoad is None else taskLoad
+
+    flow = d6tflow.Workflow(task, params)
+    if reset:
+        flow.reset(task)
+    flow.run()
+
+    if load:
+        r = flow.outputLoad(taskLoad)
+        return r
 
