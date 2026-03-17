@@ -457,7 +457,7 @@ class TestMain:
         df1 = pd.DataFrame({'a': range(5)})
         df2 = pd.DataFrame({'b': range(5)})
 
-        class TaskSheets(d6tflow.tasks.TaskExcelPandasSheets):
+        class TaskSheets(d6tflow.tasks.TaskExcelPandas):
             persist = ['customers', 'orders']
             def run(self):
                 self.save({'customers': df1, 'orders': df2})
@@ -500,7 +500,7 @@ class TestMain:
             t.outputLoad(keys='bad_key')
 
         # save with from_list
-        class TaskSheetsList(d6tflow.tasks.TaskExcelPandasSheets):
+        class TaskSheetsList(d6tflow.tasks.TaskExcelPandas):
             persist = ['customers', 'orders']
             def run(self):
                 self.save([df1, df2], from_list=True)
@@ -511,7 +511,7 @@ class TestMain:
         assert data['orders'].equals(df2)
 
         # save validation - mismatched keys
-        class TaskSheetsBad(d6tflow.tasks.TaskExcelPandasSheets):
+        class TaskSheetsBad(d6tflow.tasks.TaskExcelPandas):
             persist = ['customers', 'orders']
             def run(self):
                 self.save({'wrong_key': df1, 'orders': df2})

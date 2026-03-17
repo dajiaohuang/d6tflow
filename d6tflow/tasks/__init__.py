@@ -453,15 +453,15 @@ class TaskCSVGZPandas(TaskData):
     target_ext = 'csv.gz'
 
 
-class TaskExcelPandas(TaskData):
+class TaskExcelPandasSingle(TaskData):
     """
-    Task which saves to Excel
+    Task which saves each persist key as a separate Excel file
     """
     target_class = d6tflow.targets.ExcelPandasTarget
     target_ext = 'xlsx'
 
 
-class TaskExcelPandasSheets(TaskData):
+class TaskExcelPandas(TaskData):
     """
     Task which saves multiple dataframes as sheets in a single Excel file
     """
