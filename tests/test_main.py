@@ -453,6 +453,90 @@ class TestMain:
 
         Task1(param=1, param2=1) # pass insignifcant and non-existing param
 
+    def test_excel_sheets(self, cleanup):
+        df1 = pd.DataFrame({'a': range(5)})
+        df2 = pd.DataFrame({'b': range(5)})
+
+        class TaskSheets(d6tflow.tasks.TaskExcelPandasSheets):
+            persist = ['customers', 'orders']
+            def run(self):
+                self.save({'customers': df1, 'orders': df2})
+
+        t = TaskSheets()
+        assert not t.complete()
+
+        # run and check complete
+        t.run()
+        assert t.complete()
+
+        # single file created (not one per persist key)
+        output_path = t.output().path
+        assert output_path.exists()
+
+        # outputLoad - list (default)
+        data = t.outputLoad()
+        assert isinstance(data, list)
+        assert len(data) == 2
+        assert data[0].equals(df1)
+        assert data[1].equals(df2)
+
+        # outputLoad - as_dict
+        data = t.outputLoad(as_dict=True)
+        assert isinstance(data, dict)
+        assert data['customers'].equals(df1)
+        assert data['orders'].equals(df2)
+
+        # outputLoad - single key (str)
+        data = t.outputLoad(keys='customers')
+        assert data.equals(df1)
+
+        # outputLoad - key list
+        data = t.outputLoad(keys=['orders'])
+        assert isinstance(data, list)
+        assert data[0].equals(df2)
+
+        # outputLoad - invalid key
+        with pytest.raises(IndexError):
+            t.outputLoad(keys='bad_key')
+
+        # save with from_list
+        class TaskSheetsList(d6tflow.tasks.TaskExcelPandasSheets):
+            persist = ['customers', 'orders']
+            def run(self):
+                self.save([df1, df2], from_list=True)
+
+        TaskSheetsList().run()
+        data = TaskSheetsList().outputLoad(as_dict=True)
+        assert data['customers'].equals(df1)
+        assert data['orders'].equals(df2)
+
+        # save validation - mismatched keys
+        class TaskSheetsBad(d6tflow.tasks.TaskExcelPandasSheets):
+            persist = ['customers', 'orders']
+            def run(self):
+                self.save({'wrong_key': df1, 'orders': df2})
+
+        with pytest.raises(ValueError):
+            TaskSheetsBad().run()
+
+        # invalidate
+        t.invalidate(confirm=False)
+        assert not t.complete()
+        assert not output_path.exists()
+
+        # inputLoad from downstream
+        t.run()
+
+        @d6tflow.requires(TaskSheets)
+        class TaskDownstream(d6tflow.tasks.TaskCache):
+            def run(self):
+                data = self.inputLoad()
+                assert isinstance(data, dict)
+                assert data['customers'].equals(df1)
+                assert data['orders'].equals(df2)
+
+        TaskDownstream().run()
+
     def test_path(self):
         class Task1(d6tflow.tasks.TaskPickle):
             def run(self):

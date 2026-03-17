@@ -461,12 +461,73 @@ class TaskExcelPandas(TaskData):
     target_ext = 'xlsx'
 
 
+class TaskExcelPandasSheets(TaskData):
+    """
+    Task which saves multiple dataframes as sheets in a single Excel file
+    """
+    target_class = d6tflow.targets.ExcelPandasSheetsTarget
+    target_ext = 'xlsx'
+
+    def output(self):
+        return self.target_class(self._getpath('data', check_pipe=True))
+
+    def save(self, data, from_list=False, **kwargs):
+        if from_list:
+            data = dict(zip(self.persist, data))
+        if not set(data.keys()) == set(self.persist):
+            raise ValueError(
+                'Save dictionary needs to be consistent with Task.persist')
+        self.output().save(data, **kwargs)
+
+    def outputLoad(self, keys=None, as_dict=False, cached=False):
+        if not self.complete(cascade=False):
+            raise RuntimeError(
+                f'Cannot load {self.__class__}, task not complete, run flow first')
+
+        if keys is not None:
+            # Validate keys
+            check_keys = [keys] if isinstance(keys, str) else keys
+            for key in check_keys:
+                if key not in self.persist:
+                    raise IndexError('Key name does not match')
+
+        data = self.output().load(keys=keys, cached=cached)
+
+        # keys=str: target returns single df directly
+        if isinstance(keys, str):
+            return data
+
+        # keys=None or keys=list: target returns dict
+        if as_dict:
+            return data
+        return list(data.values())
+
+    def invalidate(self, confirm=True):
+        if confirm:
+            c = input(
+                'Confirm invalidating task: {} (y/n). PS You can disable this message by passing confirm=False'.format(
+                    self.__class__.__qualname__))
+        else:
+            c = 'y'
+        if c == 'y':
+            self.output().invalidate()
+        return True
+
+
 class TaskPqPandas(TaskData):
     """
     Task which saves to parquet
     """
     target_class = d6tflow.targets.PqPandasTarget
     target_ext = 'parquet'
+
+
+class TaskMarkdown(TaskData):
+    """
+    Task which saves to markdown and HTML
+    """
+    target_class = d6tflow.targets.MarkdownTarget
+    target_ext = 'md'
 
 
 class TaskAggregator(luigi.Task):

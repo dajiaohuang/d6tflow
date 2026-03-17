@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import pickle
 import pathlib
+import markdown
 
 #
 
@@ -210,6 +211,58 @@ class ExcelPandasTarget(DataTarget):
         opts = {**{'index':False},**kwargs}
         return super().save(df, 'to_excel', **opts)
 
+class ExcelPandasSheetsTarget(_LocalPathTarget):
+    """
+    Saves dict of dataframes as sheets in a single Excel file, loads selectively by sheet
+
+    """
+    def load(self, keys=None, cached=False, **kwargs):
+        """
+        Load sheets from Excel file
+
+        Args:
+            keys (str/list): sheet name(s) to load. None loads all sheets
+            cached (bool): keep data cached in memory
+            **kwargs: arguments to pass to pd.read_excel
+
+        Returns: dict of dataframes, single dataframe, or filtered dict
+
+        """
+        if self.exists():
+            if not cached or not settings.cached or self.path not in cache:
+                sheet_name = keys if keys is not None else None
+                data = pd.read_excel(self.path, sheet_name=sheet_name, **kwargs)
+                if cached or settings.cached:
+                    cache[self.path] = data
+                return data
+            else:
+                data = cache.get(self.path)
+                if keys is None:
+                    return data
+                if isinstance(keys, str):
+                    return data[keys]
+                return {k: v for k, v in data.items() if k in keys}
+        else:
+            raise RuntimeError('Target does not exist, make sure task is complete')
+
+    def save(self, data, **kwargs):
+        """
+        Save dict of dataframes as sheets in a single Excel file
+
+        Args:
+            data (dict): {sheet_name: dataframe}
+            kwargs: additional arguments to pass to df.to_excel
+
+        Returns: filename
+
+        """
+        opts = {**{'index': False}, **kwargs}
+        (self.path).parent.mkdir(parents=True, exist_ok=True)
+        with pd.ExcelWriter(self.path, engine='openpyxl') as writer:
+            for sheet_name, df in data.items():
+                df.to_excel(writer, sheet_name=sheet_name, **opts)
+        return self.path
+
 class PqPandasTarget(DataTarget):
     """
     Saves to parquet, loads to pandas dataframe
@@ -284,6 +337,56 @@ class JsonTarget(DataTarget):
         opts = {**{'indent':4},**kwargs}
         write_json(self.path, {'data':dict_}, **opts)
         return self.path
+
+
+class MarkdownTarget(DataTarget):
+    """
+    Saves to markdown (.md) and HTML (.html), loads markdown string
+
+    """
+    def load(self, cached=False, **kwargs):
+        """
+        Load from markdown file to string
+
+        Args:
+            cached (bool): keep data cached in memory
+            **kwargs: arguments to pass to read function
+
+        Returns: markdown string
+
+        """
+        def read_md(path, **opts):
+            with path.open('r', encoding='utf-8') as fhandle:
+                return fhandle.read()
+        return super().load(read_md, cached, **kwargs)
+
+    def save(self, md_string, **kwargs):
+        """
+        Save markdown string to .md and .html files
+
+        Args:
+            md_string (str): markdown string
+            kwargs : additional arguments to pass to markdown.markdown
+
+        Returns: filename
+
+        """
+        (self.path).parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open('w', encoding='utf-8') as fhandle:
+            fhandle.write(md_string)
+        html_path = self.path.with_suffix('.html')
+        html_string = markdown.markdown(md_string, **kwargs)
+        with html_path.open('w', encoding='utf-8') as fhandle:
+            fhandle.write(html_string)
+        return self.path
+
+    def invalidate(self):
+        html_path = self.path.with_suffix('.html')
+        if html_path.exists():
+            html_path.unlink()
+        if self.exists():
+            self.path.unlink()
+        return not self.exists()
 
 
 class PickleTarget(DataTarget):
