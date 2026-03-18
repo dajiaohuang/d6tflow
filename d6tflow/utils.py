@@ -141,3 +141,18 @@ def params_generator_dictlist(params_dict, params_base=None):
     
     return result
 
+def apply_noise(dfg, cfg_cols, seed=123):
+    import numpy as np
+    dfg = dfg.copy() # return a copy
+    dfc = dfg.copy()
+    np.random.seed(seed)
+    for col in cfg_cols:
+        noise = np.random.uniform(0.25, 3, size=len(dfg))
+        dfg[col] = dfg[col] * noise
+        idxSel = (dfg[col]==0) | (dfg[col].isna())
+        idxSel = ~idxSel
+        assert (noise==1).sum()==0
+        assert idxSel.sum()>0, f'column {col} has no values that should be different'
+        assert (dfc.loc[idxSel,col] != dfg.loc[idxSel,col]).all(), f'column {col} not all different'
+
+    return dfg
