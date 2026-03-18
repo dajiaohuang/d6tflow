@@ -375,7 +375,21 @@ class MarkdownTarget(DataTarget):
         with self.path.open('w', encoding='utf-8') as fhandle:
             fhandle.write(md_string)
         html_path = self.path.with_suffix('.html')
-        html_string = markdown.markdown(md_string, **kwargs)
+        html_body = markdown.markdown(md_string, extensions=['tables'], **kwargs)
+        html_string = (
+            '<!DOCTYPE html>\n'
+            '<html>\n'
+            '<head>\n'
+            '<meta charset="utf-8">\n'
+            '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.8.1/github-markdown.css">\n'
+            '</head>\n'
+            '<body>\n'
+            '<article class="markdown-body">\n'
+            f'{html_body}\n'
+            '</article>\n'
+            '</body>\n'
+            '</html>\n'
+        )
         with html_path.open('w', encoding='utf-8') as fhandle:
             fhandle.write(html_string)
         return self.path
