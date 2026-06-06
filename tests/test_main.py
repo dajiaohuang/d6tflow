@@ -453,6 +453,26 @@ class TestMain:
 
         Task1(param=1, param2=1) # pass insignifcant and non-existing param
 
+    def test_excel_default_persist(self, cleanup):
+        df1 = pd.DataFrame({'a': range(5)})
+
+        class TaskExcelDefault(d6tflow.tasks.TaskExcelPandas):
+            def run(self):
+                self.save(df1)
+
+        t = TaskExcelDefault()
+        assert not t.complete()
+        t.run()
+        assert t.complete()
+
+        # outputLoad returns single df
+        data = t.outputLoad()
+        assert data.equals(df1)
+
+        # invalidate
+        t.invalidate(confirm=False)
+        assert not t.complete()
+
     def test_excel_sheets(self, cleanup):
         df1 = pd.DataFrame({'a': range(5)})
         df2 = pd.DataFrame({'b': range(5)})

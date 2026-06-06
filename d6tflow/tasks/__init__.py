@@ -472,17 +472,23 @@ class TaskExcelPandas(TaskData):
         return self.target_class(self._getpath('data', check_pipe=True))
 
     def save(self, data, from_list=False, **kwargs):
-        if from_list:
-            data = dict(zip(self.persist, data))
-        if not set(data.keys()) == set(self.persist):
-            raise ValueError(
-                'Save dictionary needs to be consistent with Task.persist')
+        if self.persist == ['data']:
+            data = {'data': data}
+        else:
+            if from_list:
+                data = dict(zip(self.persist, data))
+            if not set(data.keys()) == set(self.persist):
+                raise ValueError(
+                    'Save dictionary needs to be consistent with Task.persist')
         self.output().save(data, **kwargs)
 
     def outputLoad(self, keys=None, as_dict=False, cached=False):
         if not self.complete(cascade=False):
             raise RuntimeError(
                 f'Cannot load {self.__class__}, task not complete, run flow first')
+
+        if self.persist == ['data']:
+            return self.output().load(keys='data', cached=cached)
 
         if keys is not None:
             # Validate keys
