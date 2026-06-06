@@ -95,8 +95,8 @@ You often need to pass parameters between classes. With d6tflow, you do not need
 
     d6tflow.preview(TaskEvaluate(do_preprocess=False))  # specify non-default parameters
     '''
-    └─--[TaskEvaluate-{'do_preprocess': 'False', 'dt_start': '2010-01-01', 'dt_end': '2020-01-01'} (PENDING)]
-    └─--[TaskTrain-{'do_preprocess': 'False', 'dt_start': '2010-01-01', 'dt_end': '2020-01-01'} (PENDING)] => automatically passed upstream
+    +--[TaskEvaluate-{'do_preprocess': 'False', 'dt_start': '2010-01-01', 'dt_end': '2020-01-01'} (PENDING)]
+    +--[TaskTrain-{'do_preprocess': 'False', 'dt_start': '2010-01-01', 'dt_end': '2020-01-01'} (PENDING)] => automatically passed upstream
     '''
 
 Note that you can pass parameters for upstream tasks directly to the terminal task, they will be automatically passed to upstream tasks. `do_preprocess=False` will be passed down from `TaskEvaluate` to `TaskTrain`.
@@ -124,9 +124,9 @@ If you require multiple tasks, you can inherit parameters from those tasks. `Tas
 
     d6tflow.preview(TaskEvaluate(do_preprocess=False))  # specify non-default parameters
     '''
-    └─--[TaskEvaluate-{'do_preprocess': 'False', 'dt_start': '2010-01-01', 'dt_end': '2020-01-01'} (PENDING)]
+    +--[TaskEvaluate-{'do_preprocess': 'False', 'dt_start': '2010-01-01', 'dt_end': '2020-01-01'} (PENDING)]
        |--[TaskTrain-{'do_preprocess': 'False'} (PENDING)] => automatically passed upstream
-       └─--[TaskPredict-{'dt_start': '2010-01-01', 'dt_end': '2020-01-01'} (PENDING)] => automatically passed upstream
+       +--[TaskPredict-{'dt_start': '2010-01-01', 'dt_end': '2020-01-01'} (PENDING)] => automatically passed upstream
     '''
 
 `@d6tflow.requires` also works with aggregator tasks.

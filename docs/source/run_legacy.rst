@@ -56,15 +56,15 @@ By default, for a task to be complete, it checks if all dependencies are complet
     d6tflow.settings.check_dependencies=True # default
     d6tflow.preview(TaskTrain()) # TaskGetData is pending so all tasks are pending
     '''
-    └─--[TaskTrain-{'do_preprocess': 'True'} (PENDING)]
-       └─--[TaskPreprocess-{'do_preprocess': 'True'} (PENDING)]
-          └─--[TaskGetData-{} (PENDING)]
+    +--[TaskTrain-{'do_preprocess': 'True'} (PENDING)]
+       +--[TaskPreprocess-{'do_preprocess': 'True'} (PENDING)]
+          +--[TaskGetData-{} (PENDING)]
     '''
     d6tflow.settings.check_dependencies=False # deactivate dependency checks
     d6tflow.preview(TaskTrain())
-    └─--[TaskTrain-{'do_preprocess': 'True'} (COMPLETE)]
-       └─--[TaskPreprocess-{'do_preprocess': 'True'} (COMPLETE)]
-          └─--[TaskGetData-{} (PENDING)]
+    +--[TaskTrain-{'do_preprocess': 'True'} (COMPLETE)]
+       +--[TaskPreprocess-{'do_preprocess': 'True'} (COMPLETE)]
+          +--[TaskGetData-{} (PENDING)]
     d6tflow.settings.check_dependencies=True # set to default
 
 

@@ -112,11 +112,11 @@ run strategy #1
  ===== Luigi Execution Preview ===== 
 
 
-└─--[Backtest-{'date_start': '2018-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["CAT", "WMT"]'} (PENDING)]
++--[Backtest-{'date_start': '2018-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["CAT", "WMT"]'} (PENDING)]
    |--[TradingSignals- (PENDING)]
-   |  └─--[GetDataEcon- (PENDING)]
-   └─--[GetDataPx- (PENDING)]
-      └─--[GetDataEcon- (PENDING)]
+   |  +--[GetDataEcon- (PENDING)]
+   +--[GetDataPx- (PENDING)]
+      +--[GetDataEcon- (PENDING)]
 
  ===== Luigi Execution Preview ===== 
 
@@ -141,11 +141,11 @@ run strategy #2
  ===== Luigi Execution Preview ===== 
 
 
-└─--[Backtest-{'date_start': '2018-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["MSFT", "FB"]'} (PENDING)]
++--[Backtest-{'date_start': '2018-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["MSFT", "FB"]'} (PENDING)]
    |--[TradingSignals- (COMPLETE)]
-   |  └─--[GetDataEcon- (COMPLETE)]
-   └─--[GetDataPx- (PENDING)]
-      └─--[GetDataEcon- (COMPLETE)]
+   |  +--[GetDataEcon- (COMPLETE)]
+   +--[GetDataPx- (PENDING)]
+      +--[GetDataEcon- (COMPLETE)]
 
  ===== Luigi Execution Preview ===== 
 
@@ -171,11 +171,11 @@ run strategy #3
  ===== Luigi Execution Preview ===== 
 
 
-└─--[Backtest-{'date_start': '2019-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["CAT", "WMT"]'} (PENDING)]
++--[Backtest-{'date_start': '2019-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["CAT", "WMT"]'} (PENDING)]
    |--[TradingSignals- (PENDING)]
-   |  └─--[GetDataEcon- (PENDING)]
-   └─--[GetDataPx- (PENDING)]
-      └─--[GetDataEcon- (PENDING)]
+   |  +--[GetDataEcon- (PENDING)]
+   +--[GetDataPx- (PENDING)]
+      +--[GetDataEcon- (PENDING)]
 
  ===== Luigi Execution Preview ===== 
 

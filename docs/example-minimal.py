@@ -50,7 +50,7 @@ flow.outputLoad()
 flow2 = d6tflow.Workflow(Task3, {'multiplier': 3})
 flow2.preview()
 '''
-└─--[Task3-{'multiplier': '3'} (PENDING)] => this changed and needs to run
++--[Task3-{'multiplier': '3'} (PENDING)] => this changed and needs to run
    |--[Task1-{} (COMPLETE)] => this doesn't change and doesn't need to rerun
-   └─--[Task2-{} (COMPLETE)] => this doesn't change and doesn't need to rerun
+   +--[Task2-{} (COMPLETE)] => this doesn't change and doesn't need to rerun
 '''

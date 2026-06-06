@@ -26,7 +26,7 @@ def print_tree(task, indent='', last=True, show_params=True, clip_params=False):
         params = ''
     result = '\n' + indent
     if(last):
-        result += '└─--'
+        result += '+--'
         indent += '   '
     else:
         result += '|--'

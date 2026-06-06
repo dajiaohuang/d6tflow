@@ -130,9 +130,9 @@ Below is a stylized example of a machine learning flow which is expressed as a D
     d6tflow.preview(TaskTrain())
 
     '''
-    └─--[TaskTrain-{'do_preprocess': 'True'} (PENDING)]
-       └─--[TaskPreprocess-{'do_preprocess': 'True'} (PENDING)]
-          └─--[TaskGetData-{} (PENDING)]
+    +--[TaskTrain-{'do_preprocess': 'True'} (PENDING)]
+       +--[TaskPreprocess-{'do_preprocess': 'True'} (PENDING)]
+          +--[TaskGetData-{} (PENDING)]
     '''
 
     # Execute the model training task including dependencies
