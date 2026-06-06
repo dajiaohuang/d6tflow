@@ -17,6 +17,11 @@ class CacheTarget(luigi.LocalTarget):
     Saves to in-memory cache, loads to python object
 
     """
+    def __init__(self, path=None):
+        super().__init__(path)
+        # store as pathlib.Path so cache keys / outputPath match file-based targets
+        self.path = pathlib.Path(path)
+
     def exists(self):
         return self.path in cache
 

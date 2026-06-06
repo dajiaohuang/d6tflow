@@ -398,7 +398,7 @@ class Task2(d6tflow.tasks.TaskCache):
         e.generate()
 
         code = self.readfile(self.file_path)
-        assert code == '''
+        assert code == f'''
 import d6tflow
 import luigi
 import datetime
@@ -406,7 +406,7 @@ import datetime
 class Task2Path(d6tflow.tasks.TaskCache):
     external=True
     persist=['data']
-    path="usr/test"
+    path="{Path("usr/test")}"
     idx=luigi.parameter.IntParameter(default=1)
     idx2=luigi.parameter.Parameter(default='test')
     idx3=luigi.parameter.Parameter(default='test3')
@@ -444,7 +444,8 @@ class Task2Task_group(d6tflow.tasks.TaskCache):
         e.generate()
 
         code = self.readfile(self.file_path)
-        assert code == '''
+        wf_path = Path("data/data2/wf_change/env=prod")
+        assert code == f'''
 import d6tflow
 import luigi
 import datetime
@@ -452,20 +453,20 @@ import datetime
 class Task1A(d6tflow.tasks.TaskCache):
     external=True
     persist=['df', 'df2']
-    path="data/data2/wf_change/env=prod"
+    path="{wf_path}"
     idx=luigi.parameter.IntParameter(default=1)
     idx2=luigi.parameter.Parameter(default='test')
 
 class Task1B(d6tflow.tasks.TaskCache):
     external=True
     persist=['df', 'df2']
-    path="data/data2/wf_change/env=prod"
+    path="{wf_path}"
     idx3=luigi.parameter.Parameter(default='test3')
 
 class Task3Flow(d6tflow.tasks.TaskCache):
     external=True
     persist=['data']
-    path="data/data2/wf_change/env=prod"
+    path="{wf_path}"
     task_group="upwork"
     idx=luigi.parameter.IntParameter(default=1)
     idx2=luigi.parameter.Parameter(default='test')
@@ -643,7 +644,7 @@ class GetData(d6tflow.tasks.TaskPqPandas):
     persist = ['xx','yy']
 
     def run(self):
-        ds = sklearn.datasets.load_boston()
+        ds = sklearn.datasets.load_diabetes()
         df_trainX = pd.DataFrame(ds.data, columns=ds.feature_names)
         df_trainY = pd.DataFrame(ds.target, columns=['target'])
         self.save({'xx': df_trainX, 'yy': df_trainY}) # persist/cache training data
@@ -710,7 +711,7 @@ class PathTaskMultiOutput(d6tflow.tasks.TaskPqPandas):
     persist = ['xx','yy']
 
     def run(self):
-        ds = sklearn.datasets.load_boston()
+        ds = sklearn.datasets.load_diabetes()
         df_trainX = pd.DataFrame(ds.data, columns=ds.feature_names)
         df_trainY = pd.DataFrame(ds.target, columns=['target'])
         self.save({'xx': df_trainX, 'yy': df_trainY}) # persist/cache training data
@@ -743,10 +744,9 @@ class TestWorkflowOutput:
         path_1 = flow.output(PathTask1).path
         path_2 = flow.output(PathTask2).path
         path_3 = flow.output(PathTask3).path
-        assert str(path_1) == "data/PathTask1/PathTask1__99914b932b-data.cache"
-        # Should be a POSIXPATH
-        assert str(path_2) == "data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet"
-        assert str(path_3) == "data/PathTask3/PathTask3__99914b932b-data.parquet"
+        assert path_1 == Path("data/PathTask1/PathTask1__99914b932b-data.cache")
+        assert path_2 == Path("data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet")
+        assert path_3 == Path("data/PathTask3/PathTask3__99914b932b-data.parquet")
         # Dir is not Empty
         p = Path('.')
         dir = list(p.glob('data/data2_changed/PathTask2/*'))
@@ -770,8 +770,8 @@ class TestWorkflowOutput:
 
         path_1 = flow.outputPath(PathTask1)
         path_2 = flow.outputPath(PathTask2)
-        assert str(path_1) == "data/PathTask1/PathTask1__99914b932b-data.cache"
-        assert str(path_2) == "data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet"
+        assert path_1 == Path("data/PathTask1/PathTask1__99914b932b-data.cache")
+        assert path_2 == Path("data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet")
 
         # Test Multi Output
         # Execute task including all its dependencies
@@ -779,8 +779,8 @@ class TestWorkflowOutput:
         flow.run()
 
         multi_path_1 = flow.outputPath(PathTaskMultiOutput)
-        assert str(multi_path_1['xx']) == "data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet"
-        assert str(multi_path_1['yy']) == "data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet"
+        assert multi_path_1['xx'] == Path("data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet")
+        assert multi_path_1['yy'] == Path("data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet")
 
     def test_workflow_set_path_and_env(self):
         # Execute task including all its dependencies
@@ -789,8 +789,8 @@ class TestWorkflowOutput:
 
         path_2 = flow.outputPath(PathTask2)
         path_3 = flow.outputPath(PathTask3)
-        assert str(path_2) == "data/env=prod/PathTask2/PathTask2__99914b932b-data.parquet"
-        assert str(path_3) == "data/env=prod/PathTask3/PathTask3__99914b932b-data.parquet"
+        assert path_2 == Path("data/env=prod/PathTask2/PathTask2__99914b932b-data.parquet")
+        assert path_3 == Path("data/env=prod/PathTask3/PathTask3__99914b932b-data.parquet")
         flow.reset()
 
         # Execute task including all its dependencies
@@ -799,8 +799,8 @@ class TestWorkflowOutput:
 
         path_2 = flow.outputPath(PathTask2)
         path_3 = flow.outputPath(PathTask3)
-        assert str(path_2) == "data/data2/wf_change/PathTask2/PathTask2__99914b932b-data.parquet"
-        assert str(path_3) == "data/data2/wf_change/PathTask3/PathTask3__99914b932b-data.parquet"
+        assert path_2 == Path("data/data2/wf_change/PathTask2/PathTask2__99914b932b-data.parquet")
+        assert path_3 == Path("data/data2/wf_change/PathTask3/PathTask3__99914b932b-data.parquet")
         flow.reset()
 
         # Execute task including all its dependencies
@@ -809,8 +809,8 @@ class TestWorkflowOutput:
 
         path_2 = flow.outputPath(PathTask2)
         path_3 = flow.outputPath(PathTask3)
-        assert str(path_2) == "data/data2/wf_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet"
-        assert str(path_3) == "data/data2/wf_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet"
+        assert path_2 == Path("data/data2/wf_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet")
+        assert path_3 == Path("data/data2/wf_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet")
         flow.reset()
 
         # Execute task including all its dependencies
@@ -819,8 +819,8 @@ class TestWorkflowOutput:
 
         path_2 = flow.outputPath(PathTask2)
         path_3 = flow.outputPath(PathTask3)
-        assert str(path_2) == "data/data2/wf_change_run/PathTask2/PathTask2__99914b932b-data.parquet"
-        assert str(path_3) == "data/data2/wf_change_run/PathTask3/PathTask3__99914b932b-data.parquet"
+        assert path_2 == Path("data/data2/wf_change_run/PathTask2/PathTask2__99914b932b-data.parquet")
+        assert path_3 == Path("data/data2/wf_change_run/PathTask3/PathTask3__99914b932b-data.parquet")
         flow.reset(PathTask3)
 
 # Test Meta

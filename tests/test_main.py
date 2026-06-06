@@ -1,10 +1,27 @@
 import pytest
+import os
+import stat
 import shutil
 import pandas as pd
-import fuckit
 import warnings
 import luigi
 import d6tflow
+
+
+def _rmtree_robust(path):
+    """Remove a directory tree, tolerating Windows read-only/locked files.
+
+    On Windows (esp. OneDrive-synced dirs) shutil.rmtree can raise
+    PermissionError [WinError 5]; clear the read-only bit and retry, and
+    never let cleanup itself fail the test run.
+    """
+    def onerror(func, p, exc_info):
+        try:
+            os.chmod(p, stat.S_IWRITE)
+            func(p)
+        except Exception:
+            pass
+    shutil.rmtree(path, onerror=onerror)
 
 
 
@@ -22,11 +39,10 @@ class TestMain:
 
     @pytest.fixture
     def cleanup(self, scope="module"):
-        with fuckit:
-            shutil.rmtree(self.pathdata)
+        _rmtree_robust(self.pathdata)
         self.pathdata.mkdir(exist_ok=True)
         yield True
-        shutil.rmtree(self.pathdata)
+        _rmtree_robust(self.pathdata)
 
     def test_cleanup(self, cleanup):
         pass

@@ -1,5 +1,5 @@
 import sklearn, sklearn.datasets, sklearn.svm, sklearn.linear_model
-from pathlib import PosixPath
+from pathlib import Path
 import pandas as pd
 import pytest
 import d6tflow
@@ -235,7 +235,7 @@ class PathTaskMultiOutput(d6tflow.tasks.TaskPqPandas):
     persist = ['xx','yy']
 
     def run(self):
-        ds = sklearn.datasets.load_boston()
+        ds = sklearn.datasets.load_diabetes()
         df_trainX = pd.DataFrame(ds.data, columns=ds.feature_names)
         df_trainY = pd.DataFrame(ds.target, columns=['target'])
         self.save({'xx': df_trainX, 'yy': df_trainY}) # persist/cache training data
@@ -254,12 +254,12 @@ class TestWorkflowOutput:
         path_1 = flow_multi.outputPath(PathTask1)
         path_2 = flow_multi.outputPath(PathTask2)
         assert path_1 == {
-            'experiment1': 'data/PathTask1/PathTask1__99914b932b-data.cache', 
-            'experiment2': 'data/PathTask1/PathTask1__99914b932b-data.cache'
+            'experiment1': Path('data/PathTask1/PathTask1__99914b932b-data.cache'),
+            'experiment2': Path('data/PathTask1/PathTask1__99914b932b-data.cache')
         }
         assert path_2 == {
-            'experiment1': PosixPath('data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet'), 
-            'experiment2': PosixPath('data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet')
+            'experiment1': Path('data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet'),
+            'experiment2': Path('data/data2_changed/PathTask2/PathTask2__99914b932b-data.parquet')
         }
 
         # Test Multi with Multi Output
@@ -271,13 +271,13 @@ class TestWorkflowOutput:
         assert path_1 == {
             'experiment1': 
                 {
-                    'xx': PosixPath('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet'),
-                    'yy': PosixPath('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet')
-                }, 
-            'experiment2': 
+                    'xx': Path('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet'),
+                    'yy': Path('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet')
+                },
+            'experiment2':
                 {
-                    'xx': PosixPath('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet'),
-                    'yy': PosixPath('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet')
+                    'xx': Path('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-xx.parquet'),
+                    'yy': Path('data/PathTaskMultiOutput/PathTaskMultiOutput__99914b932b-yy.parquet')
                 }
             }
 
@@ -290,11 +290,11 @@ class TestWorkflowOutput:
         path_2 = flow.outputPath(PathTask2)
         path_3 = flow.outputPath(PathTask3)
         assert path_2 == {
-            'experiment1': PosixPath('data/data2/wfm_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet'),
-            'experiment2': PosixPath('data/data2/wfm_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet')
+            'experiment1': Path('data/data2/wfm_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet'),
+            'experiment2': Path('data/data2/wfm_change/env=prod/PathTask2/PathTask2__99914b932b-data.parquet')
         }
         assert path_3 == {
-            'experiment1': PosixPath('data/data2/wfm_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet'),
-            'experiment2': PosixPath('data/data2/wfm_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet')
+            'experiment1': Path('data/data2/wfm_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet'),
+            'experiment2': Path('data/data2/wfm_change/env=prod/PathTask3/PathTask3__99914b932b-data.parquet')
         }
         flow.reset()
