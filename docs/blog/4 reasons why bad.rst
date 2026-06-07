@@ -70,7 +70,7 @@ You are better of writing tasks that you can chain together as a DAG:
             return TaskGetData() # define dependency
 
         def run(self):
-            data = self.input().load() # load input data
+            data = self.inputLoad() # load input data
             data = do_stuff(data) # process data
             self.save(data) # save output data
 
@@ -92,7 +92,6 @@ Below is a stylized example of a machine learning flow which is expressed as a D
     import pandas as pd
     import sklearn, sklearn.svm
     import d6tflow
-    import luigi
 
     # define workflow
     class TaskGetData(d6tflow.tasks.TaskPqPandas):  # save dataframe as parquet
@@ -103,25 +102,25 @@ Below is a stylized example of a machine learning flow which is expressed as a D
             self.save(data) # quickly save dataframe
 
     class TaskPreprocess(d6tflow.tasks.TaskCachePandas):  # save data in memory
-        do_preprocess = luigi.BoolParameter(default=True) # parameter for preprocessing yes/no
+        do_preprocess = d6tflow.BoolParameter(default=True) # parameter for preprocessing yes/no
 
         def requires(self):
             return TaskGetData() # define dependency
 
         def run(self):
-            df_train = self.input().load() # quickly load required data
+            df_train = self.inputLoad() # quickly load required data
             if self.do_preprocess:
                 df_train = preprocess(df_train)
             self.save(df_train)
 
     class TaskTrain(d6tflow.tasks.TaskPickle): # save output as pickle
-        do_preprocess = luigi.BoolParameter(default=True)
+        do_preprocess = d6tflow.BoolParameter(default=True)
 
         def requires(self):
             return TaskPreprocess(do_preprocess=self.do_preprocess)
 
         def run(self):
-            df_train = self.input().load()
+            df_train = self.inputLoad()
             model = sklearn.svm.SVC()
             model.fit(df_train.iloc[:,:-1], df_train['y'])
             self.save(model)

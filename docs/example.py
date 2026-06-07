@@ -17,7 +17,7 @@ class ModelData(d6tflow.tasks.TaskPqPandas):
     do_preprocess = d6tflow.BoolParameter(default=True) # parameter for preprocessing yes/no
 
     def run(self):
-        df_train = self.input().load() # quickly load required data
+        df_train = self.inputLoad() # quickly load required data
         if self.do_preprocess:
             df_train.iloc[:,:-1] = sklearn.preprocessing.scale(df_train.iloc[:,:-1])
         self.save(df_train)
@@ -27,7 +27,7 @@ class ModelTrain(d6tflow.tasks.TaskPickle): # save output as pickle
     model = d6tflow.Parameter(default='ols') # parameter for model selection
 
     def run(self):
-        df_train = self.input().load()
+        df_train = self.inputLoad()
         if self.model=='ols':
             model = sklearn.linear_model.LinearRegression()
         elif self.model=='gbm':

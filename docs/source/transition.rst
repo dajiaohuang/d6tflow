@@ -49,13 +49,13 @@ The function-based workflow example will transform to this:
             self.save(data) # save output data
 
     class TaskProcess(d6tflow.tasks.TaskPqPandas):
-        do_preprocess = luigi.BoolParameter(default=True) # optional parameter
+        do_preprocess = d6tflow.BoolParameter(default=True) # optional parameter
 
         def requires(self):
             return TaskGetData() # define dependency
 
         def run(self): 
-            data = self.input().load() # load input data
+            data = self.inputLoad() # load input data
             if self.do_preprocess:
                 data = scale(data) # # from `def preprocess(data)`
             self.save(data) # save output data

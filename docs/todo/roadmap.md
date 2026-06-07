@@ -1,0 +1,37 @@
+# Roadmap: AI-assistant experience for d6tflow
+
+Lightweight backlog of ideas for making d6tflow easier to work with via an AI coding
+assistant (Claude Code). Unlike the dated `*-sys-*.md` plans here, these are not yet
+scoped specs - just captured intent so they are not re-discovered each session.
+
+Context: came out of an audit of the d6tflow repo + the separate `d6tflow-claude-plugin`
+repo. The quick wins from that audit (idiom consistency in `docs/`, a Public API map in
+`CLAUDE.md`, docs for `runLoad`/cloud storage) are already done. The items below were
+deferred.
+
+## Deferred ideas
+
+- **Explore subagent (plugin-side).** The plugin's opt-in "explore the data" deep dive is
+  read-heavy fan-out (profile sources, inspect schema, write `docs/d6tflow-data.md`). It
+  pollutes the main context. A dedicated subagent that returns only the findings would keep
+  the main thread clean. Lives in the plugin repo (`skills/d6tflow`), not the library.
+
+- **Error decoder (library docs or plugin).** A single consolidated "common error -> cause ->
+  fix" reference. Candidates seen repeatedly:
+  - task edited but not reset -> shows under "complete ones were encountered", silently reuses
+    stale output (reset before rerun).
+  - `KeyError` on a column/key after a code change -> a *different* parameter variant of the
+    task is still cached with the old schema (reset that variant / `reset=True`).
+  - locked Excel file on Windows -> permission/sharing error; close the file, do not work around.
+  - "Can not schedule non-task" -> passed a class where an instance was expected (or vice versa).
+  `docs/source/run.rst` already has a "Debugging Failures" section this could extend.
+
+## Deferred cleanup (found during the audit, low priority)
+
+- **`docs/example.ipynb`** still uses the old `self.input().load()` idiom and shows stale
+  `LuigiRunResult` cell *outputs* (predates the luigi removal). Needs a full re-execution to
+  refresh, not a hand-edit - hence skipped.
+
+- **`docs/source/run_legacy.rst`** still shows `luigi.*` (params, `luigi.worker.TaskException`).
+  It is the explicitly-legacy doc, so it was left as-is; decide whether to retire it or scrub
+  the luigi references to match the rest of the docs.
