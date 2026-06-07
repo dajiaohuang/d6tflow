@@ -204,3 +204,9 @@ baseline: **73 passing**. Needs `pandas`, `pyarrow`, `openpyxl`, `scikit-learn`,
 - When changing `FlowExport`'s generated-file template, update the exact expected strings in
   `tests/test_workflow.py::TestFlowExports` (they assert generated text byte-for-byte).
 - Don't commit/push unless asked. Default branch is `main`; feature work is on `decouple*`.
+- **Multi-line strings: match the here-string syntax to the shell tool you're actually calling.**
+  The Bash and PowerShell tools use different syntaxes — don't mix them. For a multi-line commit
+  message: in the **Bash** tool use a quoted heredoc (`git commit -F - <<'EOF' … EOF`, or
+  `-m $'line1\nline2'`); in the **PowerShell** tool use a here-string (`@'…'@`, closing `'@` at
+  column 0). Crossing them silently corrupts the message (e.g. `@'…'@` in bash leaks literal `@`
+  lines). When unsure, write the message to a temp file and `git commit -F`.
