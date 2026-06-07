@@ -80,7 +80,7 @@ def preview(tasks, indent='', last=True, show_params=True, clip_params=False, pr
         tasks = [tasks]
     for t in tasks:
         msg += d6tflow.utils.print_tree(t, indent=indent, last=last, show_params=show_params, clip_params=clip_params)
-    msg += '\n ===== Luigi Execution Preview ===== \n'
+    msg += '\n ===== d6tflow Execution Preview ===== \n'
     if print_it:
         print(msg)
     else:

@@ -1,7 +1,7 @@
 """
-Mini-engine: a small, self-contained re-implementation of the slice of luigi that d6tflow
-needs. Provides the ``Task`` base class, target bases, ``flatten``/``getpaths``, deterministic
-task ids, the ``inherits``/``requires`` decorators, ``find_deps`` and a sequential ``build``.
+Mini-engine: a small, self-contained execution engine for d6tflow. Provides the ``Task`` base
+class, target bases, ``flatten``/``getpaths``, deterministic task ids, the
+``inherits``/``requires`` decorators, ``find_deps`` and a sequential ``build``.
 
 The execution engine is **sequential**: the DAG is run in dependency order in-process. The
 ``workers`` argument is accepted for API compatibility but ignored.
@@ -96,10 +96,10 @@ def task_id_str(task_family, params):
     return '{}_{}_{}'.format(task_family, param_summary, param_hash[:TASK_ID_TRUNCATE_HASH])
 
 
-# Memoizes task instances by (class, serialized params), like luigi's Register. This is
-# load-bearing: ``Workflow`` propagates per-flow ``path``/``flows`` by mutating attributes on a
-# task instance and relies on later ``Task(...)`` calls (eg from ``outputPath``/``FlowExport``)
-# returning that same instance. Keyed by all params (significant or not), matching luigi.
+# Memoizes task instances by (class, serialized params). This is load-bearing: ``Workflow``
+# propagates per-flow ``path``/``flows`` by mutating attributes on a task instance and relies on
+# later ``Task(...)`` calls (eg from ``outputPath``/``FlowExport``) returning that same instance.
+# Keyed by all params (significant or not).
 _instance_cache = {}
 
 
@@ -111,7 +111,7 @@ class Register(type):
     ``SomeTaskClass.task_family`` needs this metaclass property (used eg by ``WorkflowMulti``).
 
     ``__call__`` memoizes instances so two ``Cls(**same_params)`` calls return the identical
-    object (and ``__init__`` runs only on the first), preserving luigi's identity semantics that
+    object (and ``__init__`` runs only on the first), preserving the instance identity that
     ``Workflow``'s path/flow propagation depends on.
     """
 
@@ -139,7 +139,7 @@ class Register(type):
 
 class Task(metaclass=Register):
     """
-    Base class for all d6tflow tasks. A simplified port of ``luigi.Task``.
+    Base class for all d6tflow tasks.
 
     Subclasses declare :py:class:`~d6tflow.parameter.Parameter` members and override
     :py:meth:`run`, :py:meth:`requires` and :py:meth:`output`.
@@ -308,7 +308,7 @@ class Task(metaclass=Register):
 
 
 class Target:
-    """Minimal abstract target base, a drop-in replacement for ``luigi.target.Target``."""
+    """Minimal abstract target base."""
 
     def exists(self):
         raise NotImplementedError
@@ -330,7 +330,7 @@ class LocalTarget(Target):
 
 
 # ----------------------------------------------------------------------------------------------
-# inherits / requires decorators (ported from luigi.util)
+# inherits / requires decorators
 # ----------------------------------------------------------------------------------------------
 
 class inherits:
@@ -399,7 +399,7 @@ class requires:
 
 
 # ----------------------------------------------------------------------------------------------
-# Dependency discovery (ported from luigi.tools.deps)
+# Dependency discovery
 # ----------------------------------------------------------------------------------------------
 
 def _get_task_requires(task):
@@ -427,8 +427,8 @@ def find_deps(task, upstream_task_family):
 # Sequential executor
 # ----------------------------------------------------------------------------------------------
 
-class LuigiRunResult:
-    """Small result object matching what ``d6tflow.run`` consumes from ``luigi.build``."""
+class RunResult:
+    """Small result object consumed by ``d6tflow.run``."""
 
     def __init__(self, scheduling_succeeded, summary_text):
         self.scheduling_succeeded = scheduling_succeeded
@@ -448,7 +448,7 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
     External tasks (``external=True`` or ``run is None``) are never executed; if still
     incomplete after their dependencies, they are marked failed.
 
-    :returns: a :py:class:`LuigiRunResult` with ``.scheduling_succeeded`` and ``.summary_text``.
+    :returns: a :py:class:`RunResult` with ``.scheduling_succeeded`` and ``.summary_text``.
     """
     if not isinstance(tasks, (list,)):
         tasks = [tasks]
@@ -535,4 +535,4 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
             n=len(ran) + len(already_complete) + len(failed),
             r=len(ran), c=len(already_complete), f=len(failed))
     )
-    return LuigiRunResult(success, summary_text)
+    return RunResult(success, summary_text)

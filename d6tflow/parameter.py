@@ -1,8 +1,8 @@
 """
-Self-contained, trimmed re-implementation of the luigi parameter types used by d6tflow.
+Self-contained, trimmed set of parameter types used by d6tflow.
 
-This drops luigi's command-line / config-file value resolution, parameter visibility,
-``date_interval``, freezing (``FrozenOrderedDict``) and ``jsonschema`` support. Values
+There is no command-line / config-file value resolution, parameter visibility,
+``date_interval``, freezing (``FrozenOrderedDict``) or ``jsonschema`` support. Values
 are resolved from the constructor argument or the ``default`` only.
 
 Only the parameter types d6tflow actually uses are kept:

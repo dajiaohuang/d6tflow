@@ -109,7 +109,7 @@ def dev():
 '''
 run strategy #1
 
- ===== Luigi Execution Preview ===== 
+ ===== d6tflow Execution Preview ===== 
 
 
 +--[Backtest-{'date_start': '2018-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["CAT", "WMT"]'} (PENDING)]
@@ -118,11 +118,11 @@ run strategy #1
    +--[GetDataPx- (PENDING)]
       +--[GetDataEcon- (PENDING)]
 
- ===== Luigi Execution Preview ===== 
+ ===== d6tflow Execution Preview ===== 
 
 None
 
-===== Luigi Execution Summary =====
+===== d6tflow Execution Summary =====
 
 Scheduled 4 tasks of which:
 * 4 ran successfully:
@@ -133,12 +133,12 @@ Scheduled 4 tasks of which:
 
 This progress looks :) because there were no failed tasks or missing dependencies
 
-===== Luigi Execution Summary =====
+===== d6tflow Execution Summary =====
 
 pnl strategy #1: -0.029
 run strategy #2
 
- ===== Luigi Execution Preview ===== 
+ ===== d6tflow Execution Preview ===== 
 
 
 +--[Backtest-{'date_start': '2018-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["MSFT", "FB"]'} (PENDING)]
@@ -147,11 +147,11 @@ run strategy #2
    +--[GetDataPx- (PENDING)]
       +--[GetDataEcon- (COMPLETE)]
 
- ===== Luigi Execution Preview ===== 
+ ===== d6tflow Execution Preview ===== 
 
 None
 
-===== Luigi Execution Summary =====
+===== d6tflow Execution Summary =====
 
 Scheduled 4 tasks of which:
 * 2 complete ones were encountered:
@@ -163,12 +163,12 @@ Scheduled 4 tasks of which:
 
 This progress looks :) because there were no failed tasks or missing dependencies
 
-===== Luigi Execution Summary =====
+===== d6tflow Execution Summary =====
 
 pnl strategy #2: -0.16
 run strategy #3
 
- ===== Luigi Execution Preview ===== 
+ ===== d6tflow Execution Preview ===== 
 
 
 +--[Backtest-{'date_start': '2019-01-01', 'date_end': '2020-01-01', 'lookback_period': '1', 'symbols': '["CAT", "WMT"]'} (PENDING)]
@@ -177,11 +177,11 @@ run strategy #3
    +--[GetDataPx- (PENDING)]
       +--[GetDataEcon- (PENDING)]
 
- ===== Luigi Execution Preview ===== 
+ ===== d6tflow Execution Preview ===== 
 
 None
 
-===== Luigi Execution Summary =====
+===== d6tflow Execution Summary =====
 
 Scheduled 4 tasks of which:
 * 4 ran successfully:
@@ -192,7 +192,7 @@ Scheduled 4 tasks of which:
 
 This progress looks :) because there were no failed tasks or missing dependencies
 
-===== Luigi Execution Summary =====
+===== d6tflow Execution Summary =====
 
 pnl strategy #3: -0.449
 
