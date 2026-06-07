@@ -196,12 +196,11 @@ class TestWorkflow:
 
 # Test Export
 import pathlib
-import luigi
 class TestFlowExports:
     # Vars
     df = pd.DataFrame({'a': range(10)})
     cfg_write_dir = pathlib.Path('tests')
-    cfg_write_filename_tasks = Path('tasks_d6tpipe.py')
+    cfg_write_filename_tasks = Path('tasks_export.py')
     file_path = cfg_write_dir / cfg_write_filename_tasks
 
     class Task1A0(d6tflow.tasks.TaskCache):
@@ -209,20 +208,20 @@ class TestFlowExports:
 
     class Task1A(Task1A0):
         persist=['df','df2']
-        idx=luigi.IntParameter(default=1)
-        idx2=luigi.Parameter(default='test')
+        idx=d6tflow.IntParameter(default=1)
+        idx2=d6tflow.Parameter(default='test')
         def run(self):
             self.save({'df': self.df, 'df2': self.df})
 
     class Task1B(d6tflow.tasks.TaskCache):
         persist=['df','df2']
-        idx3=luigi.Parameter(default='test3')
+        idx3=d6tflow.Parameter(default='test3')
         def run(self):
             self.save({'df': self.df,'df2': self.df})
 
     class Task1C(d6tflow.tasks.TaskCache):
         persist=['df','df2']
-        idx3=luigi.Parameter(default='test3')
+        idx3=d6tflow.Parameter(default='test3')
         export = False
         def run(self):
             self.save({'df': self.df,'df2': self.df})
@@ -235,7 +234,6 @@ class TestFlowExports:
 
     @d6tflow.requires(Task1A, Task1B, Task1C)
     class Task2(d6tflow.tasks.TaskCache):
-        pipename = ['d6tpipe_pipe1']
         def run(self):
             self.save(self.df)
 
@@ -295,15 +293,14 @@ class TestFlowExports:
         code = self.readfile(self.file_path)
         assert code == '''
 import d6tflow
-import luigi
 import datetime
 
 class Task1All(d6tflow.tasks.TaskCache):
     external=True
     persist=['data']
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
-    idx3=luigi.parameter.Parameter(default='test3')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
+    idx3=d6tflow.parameter.Parameter(default='test3')
 
 '''
 
@@ -316,21 +313,20 @@ class Task1All(d6tflow.tasks.TaskCache):
         code = self.readfile(self.file_path)
         assert code == '''
 import d6tflow
-import luigi
 import datetime
 
 class Task1All(d6tflow.tasks.TaskCache):
     external=True
     persist=['data']
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
-    idx3=luigi.parameter.Parameter(default='test3')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
+    idx3=d6tflow.parameter.Parameter(default='test3')
 
 class Task1A(d6tflow.tasks.TaskCache):
     external=True
     persist=['df', 'df2']
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
 
 '''
 
@@ -344,49 +340,25 @@ class Task1A(d6tflow.tasks.TaskCache):
         code = self.readfile(self.file_path)
         assert code == '''
 import d6tflow
-import luigi
 import datetime
 
 class Task1A(d6tflow.tasks.TaskCache):
     external=True
     persist=['df', 'df2']
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
 
 class Task1B(d6tflow.tasks.TaskCache):
     external=True
     persist=['df', 'df2']
-    idx3=luigi.parameter.Parameter(default='test3')
+    idx3=d6tflow.parameter.Parameter(default='test3')
 
 class Task1All(d6tflow.tasks.TaskCache):
     external=True
     persist=['data']
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
-    idx3=luigi.parameter.Parameter(default='test3')
-
-'''
-
-    # Test task.pipename
-    def test_task_pipename(self, cleanup):
-
-        e = d6tflow.FlowExport(tasks=self.Task2(),
-                                        save=True, path_export=self.file_path)
-        e.generate()
-
-        code = self.readfile(self.file_path)
-        assert code == '''
-import d6tflow
-import luigi
-import datetime
-
-class Task2(d6tflow.tasks.TaskCache):
-    external=True
-    persist=['data']
-    pipename=['d6tpipe_pipe1']
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
-    idx3=luigi.parameter.Parameter(default='test3')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
+    idx3=d6tflow.parameter.Parameter(default='test3')
 
 '''
 
@@ -400,16 +372,15 @@ class Task2(d6tflow.tasks.TaskCache):
         code = self.readfile(self.file_path)
         assert code == f'''
 import d6tflow
-import luigi
 import datetime
 
 class Task2Path(d6tflow.tasks.TaskCache):
     external=True
     persist=['data']
     path="{Path("usr/test")}"
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
-    idx3=luigi.parameter.Parameter(default='test3')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
+    idx3=d6tflow.parameter.Parameter(default='test3')
 
 '''
 
@@ -423,16 +394,15 @@ class Task2Path(d6tflow.tasks.TaskCache):
         code = self.readfile(self.file_path)
         assert code == '''
 import d6tflow
-import luigi
 import datetime
 
 class Task2Task_group(d6tflow.tasks.TaskCache):
     external=True
     persist=['data']
     task_group="upwork"
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
-    idx3=luigi.parameter.Parameter(default='test3')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
+    idx3=d6tflow.parameter.Parameter(default='test3')
 
 '''
 
@@ -447,30 +417,29 @@ class Task2Task_group(d6tflow.tasks.TaskCache):
         wf_path = Path("data/data2/wf_change/env=prod")
         assert code == f'''
 import d6tflow
-import luigi
 import datetime
 
 class Task1A(d6tflow.tasks.TaskCache):
     external=True
     persist=['df', 'df2']
     path="{wf_path}"
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
 
 class Task1B(d6tflow.tasks.TaskCache):
     external=True
     persist=['df', 'df2']
     path="{wf_path}"
-    idx3=luigi.parameter.Parameter(default='test3')
+    idx3=d6tflow.parameter.Parameter(default='test3')
 
 class Task3Flow(d6tflow.tasks.TaskCache):
     external=True
     persist=['data']
     path="{wf_path}"
     task_group="upwork"
-    idx=luigi.parameter.IntParameter(default=1)
-    idx2=luigi.parameter.Parameter(default='test')
-    idx3=luigi.parameter.Parameter(default='test3')
+    idx=d6tflow.parameter.IntParameter(default=1)
+    idx2=d6tflow.parameter.Parameter(default='test')
+    idx3=d6tflow.parameter.Parameter(default='test3')
 
 '''
 
@@ -487,7 +456,6 @@ class TestFlowImport:
 
     def test_import_tasks(self):
         scraper = d6tflow.FlowImport(path='tests/', module='for_import', path_data='data/')
-        assert scraper.tasks.Task1All.pipename == ['d6tpipe_pipe1']
         assert scraper.tasks.Task1All.task_group == "upwork"
         
     def test_import_to_flow(self):

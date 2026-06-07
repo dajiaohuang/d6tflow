@@ -69,7 +69,7 @@ class Workflow:
         """
             Flow requires decorator.
             Defines dependencies between flow steps.
-            Internally calls d6tflow.requires which inturn calls luigi.requires.
+            Internally calls d6tflow.requires.
 
             Parameters
             ----------
@@ -146,7 +146,7 @@ class Workflow:
     
     def run(self, funcs_to_run, params: dict = None, multi_params: dict = None, *args, **kwargs):
         """
-            Runs flow steps locally. See luigi.build for additional details
+            Runs flow steps locally.
             Parameters
             ----------
             funcs_to_run : function or list of functions

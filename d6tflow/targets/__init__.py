@@ -1,4 +1,3 @@
-import luigi
 import pandas as pd
 import json
 import pickle
@@ -7,12 +6,14 @@ import markdown
 
 #
 
+from d6tflow import core
+from d6tflow.core import Target
 from d6tflow.cache import data as cache
 import d6tflow.settings as settings
 import d6tflow.utils
 
 
-class CacheTarget(luigi.LocalTarget):
+class CacheTarget(core.LocalTarget):
     """
     Saves to in-memory cache, loads to python object
 
@@ -58,7 +59,7 @@ class CacheTarget(luigi.LocalTarget):
 class PdCacheTarget(CacheTarget):
     pass
 
-class _LocalPathTarget(luigi.LocalTarget):
+class _LocalPathTarget(core.LocalTarget):
     """
     Local target with `self.path` as `pathlib.Path()`
 

@@ -2,10 +2,7 @@ import pickle
 import pathlib
 import json
 
-import luigi
-import luigi.tools.deps
-
-
+from d6tflow import core
 
 import d6tflow.targets
 import d6tflow.settings as settings
@@ -13,14 +10,7 @@ from d6tflow.cache import data as cache
 import d6tflow.cache
 
 
-def _taskpipeoperation(task, fun, funargs=None):
-    pipe = task.get_pipe()
-    fun = getattr(pipe, fun)
-    funargs = {} if funargs is None else funargs
-    return fun(**funargs)
-
-
-class TaskData(luigi.Task):
+class TaskData(core.Task):
     """
     Task which has data as input and output
 
@@ -87,18 +77,14 @@ class TaskData(luigi.Task):
         complete = super().complete()
         if d6tflow.settings.check_dependencies and cascade and not getattr(self, 'external', False):
             complete = complete and all(
-                [t.complete() for t in luigi.task.flatten(self.requires())])
+                [t.complete() for t in core.flatten(self.requires())])
         return complete
 
     # Private Get Path Function
-    def _getpath(self, k, subdir=True, check_pipe=False):
+    def _getpath(self, k, subdir=True):
         # Get Output dir
-        # Check if using d6tpipe
-        if check_pipe and hasattr(self, 'pipename'):
-            import d6tflow.pipes
-            dirpath = d6tflow.pipes.get_dirpath(self.pipename)
         # Class has set Path
-        elif self.path is not None:
+        if self.path is not None:
             dirpath = pathlib.Path(self.path)
         # Default Settings
         else:
@@ -127,10 +113,10 @@ class TaskData(luigi.Task):
 
     def output(self):
         """
-        Similar to luigi task output
+        Output target(s) this task produces
         """
         save_ = getattr(self, 'persist', [])
-        output = dict([(k, self.target_class(self._getpath(k, check_pipe=True)))
+        output = dict([(k, self.target_class(self._getpath(k)))
                        for k in save_])
         if self.persist == ['data']:  # 1 data shortcut
             output = output['data']
@@ -367,44 +353,6 @@ class TaskData(luigi.Task):
         return meta_path
 
 
-    def get_pipename(self):
-        """
-        Get associated pipe name
-        """
-        return getattr(self, 'pipename', d6tflow.cache.pipe_default_name)
-
-    def get_pipe(self):
-        """
-        Get associated pipe object
-        """
-        import d6tflow.pipes
-        return d6tflow.pipes.get_pipe(self.get_pipename())
-
-    def pull(self, **kwargs):
-        """
-        Pull files from data repo
-        """
-        return _taskpipeoperation(self, 'pull', **kwargs)
-
-    def pull_preview(self, **kwargs):
-        """
-        Preview pull files from data repo
-        """
-        return _taskpipeoperation(self, 'pull_preview', **kwargs)
-
-    def push(self, **kwargs):
-        """
-        Push files to data repo
-        """
-        return _taskpipeoperation(self, 'push', **kwargs)
-
-    def push_preview(self, **kwargs):
-        """
-        Preview push files to data repo
-        """
-        return _taskpipeoperation(self, 'push_preview', **kwargs)
-
-
 class TaskCache(TaskData):
     """
     Task which saves to cache
@@ -469,7 +417,7 @@ class TaskExcelPandas(TaskData):
     target_ext = 'xlsx'
 
     def output(self):
-        return self.target_class(self._getpath('data', check_pipe=True))
+        return self.target_class(self._getpath('data'))
 
     def save(self, data, from_list=False, **kwargs):
         if self.persist == ['data']:
@@ -536,7 +484,7 @@ class TaskMarkdown(TaskData):
     target_ext = 'md'
 
 
-class TaskAggregator(luigi.Task):
+class TaskAggregator(core.Task):
     """
     Task which yields other tasks
 

@@ -1,15 +1,10 @@
 import warnings
-import luigi
-from luigi.task import flatten
-import luigi.tools.deps
-from luigi.util import inherits as luigi_inherits, requires as luigi_requires
-from luigi.parameter import (
+from d6tflow import core
+from d6tflow.core import flatten
+from d6tflow.parameter import (
     Parameter,
-    DateParameter, MonthParameter, YearParameter, DateHourParameter, DateMinuteParameter, DateSecondParameter,
-    DateIntervalParameter, TimeDeltaParameter,
     IntParameter, FloatParameter, BoolParameter,
-    TaskParameter, EnumParameter, DictParameter, ListParameter, TupleParameter,
-    NumericalParameter, ChoiceParameter, OptionalParameter
+    DateParameter, DictParameter, ListParameter, EnumParameter,
 )
 
 from pathlib import Path
@@ -19,8 +14,6 @@ import d6tflow.utils
 from d6tflow.cache import data as data
 import d6tflow.cache
 
-print('Welcome to d6tflow! For Q&A see https://github.com/d6t/d6tflow')
-
 def set_dir(dir=None):
     """
     Initialize d6tflow
@@ -29,8 +22,6 @@ def set_dir(dir=None):
         dir (str): data output directory
 
     """
-    if d6tflow.settings.isinitpipe:
-        raise RuntimeError('Using d6tpipe, set dir via d6tflow.pipes.set_default()')
     if dir is None:
         dirpath = d6tflow.settings.dirpath
         dirpath.mkdir(exist_ok=True)
@@ -84,7 +75,7 @@ def preview(tasks, indent='', last=True, show_params=True, clip_params=False, pr
     Args:
         tasks (obj, list): task or list of tasks
     """
-    msg = '\n ===== Luigi Execution Preview ===== \n'
+    msg = '\n ===== d6tflow Execution Preview ===== \n'
     if not isinstance(tasks, (list,)):
         tasks = [tasks]
     for t in tasks:
@@ -101,7 +92,7 @@ def preview(tasks, indent='', last=True, show_params=True, clip_params=False, pr
 def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1, abort=True,
         execution_summary=None, main_thread_only=False, **kwargs):
     """
-    Run tasks locally. See luigi.build for additional details
+    Run tasks locally. Runs the DAG sequentially in dependency order.
 
     Args:
         tasks (obj, list): task or list of tasks
@@ -113,13 +104,9 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
         abort (bool): on errors raise exception
         execution_summary (bool): print execution summary
         main_thread_only (bool): if True, only works in main thread of the main interpreter. Default false so it can run in apps and workers.
-        kwargs: keywords to pass to luigi.build
+        kwargs: keywords to pass to core.build
 
     """
-
-    # fix signal only works in main thread of the main interpreter
-    if not main_thread_only:
-        luigi.worker.worker().no_install_shutdown_handler = True
 
     if not isinstance(tasks, (list,)):
         tasks = [tasks]
@@ -155,9 +142,9 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
 
     execution_summary = execution_summary if execution_summary is not None else d6tflow.settings.execution_summary
     opts = {**{'workers': workers, 'local_scheduler': True, 'log_level': d6tflow.settings.log_level}, **kwargs}
-    if execution_summary and luigi.__version__ >= '3.0.0':
+    if execution_summary:
         opts['detailed_summary'] = True
-    result = luigi.build(tasks, **opts)
+    result = core.build(tasks, **opts)
     if isinstance(result, bool):
         success = result
     else:
@@ -196,7 +183,7 @@ def taskflow_downstream(task, task_downstream, only_complete=False):
         task_downstream (obj): downstream target task
 
     """
-    tasks = luigi.tools.deps.find_deps(task_downstream, task.task_family)
+    tasks = core.find_deps(task_downstream, task.task_family)
     if only_complete:
         tasks = {t for t in tasks if t.complete()}
     return tasks
@@ -302,7 +289,7 @@ def clone_parent(cls):
     return cls
 
 
-# Like luigi.utils.inherits but for handling dictionaries
+# Like core.inherits but for handling dictionaries
 class dict_inherits:
     def __init__(self, *tasks_to_inherit):
         super(dict_inherits, self).__init__()
@@ -330,7 +317,7 @@ class dict_inherits:
         return task_that_inherits
 
 
-# Like luigi.utils.requires but for handling dictionaries
+# Like core.requires but for handling dictionaries
 class dict_requires:
     def __init__(self, *tasks_to_require):
         super(dict_requires, self).__init__()
@@ -353,7 +340,7 @@ class dict_requires:
 def inherits(*tasks_to_inherit):
     if isinstance(tasks_to_inherit[0], dict):
         return dict_inherits(*tasks_to_inherit)
-    return luigi_inherits(*tasks_to_inherit)
+    return core.inherits(*tasks_to_inherit)
 
 
 def requires(*tasks_to_require):
@@ -361,7 +348,7 @@ def requires(*tasks_to_require):
     is_dict = isinstance(tasks_to_require[0], dict)
     if is_dict:
         return dict_requires(*tasks_to_require)
-    return luigi_requires(*tasks_to_require)
+    return core.requires(*tasks_to_require)
 
 
 class Workflow(object):
@@ -407,7 +394,7 @@ class Workflow(object):
     def run(self, tasks=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False, workers=1,
             abort=True, execution_summary=None, **kwargs):
         """
-        Run tasks with the workflow parameters. See luigi.build for additional details
+        Run tasks with the workflow parameters. Runs the DAG sequentially in dependency order.
 
         Args:
             tasks (class, list): task class or list of tasks class
@@ -418,7 +405,7 @@ class Workflow(object):
             workers (int): number of workers
             abort (bool): on errors raise exception
             execution_summary (bool): print execution summary
-            kwargs: keywords to pass to luigi.build
+            kwargs: keywords to pass to core.build
 
         """
         if not isinstance(tasks, (list,)):
@@ -604,7 +591,7 @@ class WorkflowMulti(object):
     def run(self, tasks=None, flow=None, forced=None, forced_all=False, forced_all_upstream=False, confirm=False,
             workers=1, abort=True, execution_summary=None, **kwargs):
         """
-        Run tasks with the workflow parameters for a flow. See luigi.build for additional details
+        Run tasks with the workflow parameters for a flow. Runs the DAG sequentially in dependency order.
 
         Args:
             flow (string): The name of the experiment for which the flow is to be run. If nothing is passed, all the flows are run
@@ -616,7 +603,7 @@ class WorkflowMulti(object):
             workers (int): number of workers
             abort (bool): on errors raise exception
             execution_summary (bool): print execution summary
-            kwargs: keywords to pass to luigi.build
+            kwargs: keywords to pass to core.build
 
         """
 
@@ -818,7 +805,7 @@ class WorkflowMulti(object):
 
 class FlowExport(object):
     """
-    Auto generate task files to quickly share workflows with others using d6tpipe.
+    Auto generate task files to quickly share workflows with others.
 
     Args:
         tasks (obj): task or list of tasks to share
@@ -826,7 +813,7 @@ class FlowExport(object):
         save (bool): save to tasks file
         path_export (str): filename for tasks to export.
     """
-    def __init__(self, tasks=None, flows=None, save=False, path_export='tasks_d6tpipe.py'):
+    def __init__(self, tasks=None, flows=None, save=False, path_export='tasks_export.py'):
 
         tasks = [] if tasks is None else tasks
         flows = [] if flows is None else flows
@@ -847,7 +834,6 @@ class FlowExport(object):
         # file templates
         self.tmpl_tasks = '''
 import d6tflow
-import luigi
 import datetime
 
 {% for task in tasks -%}
@@ -857,9 +843,6 @@ class {{task.name}}({{task.class}}):
     persist={{task.obj.persist}}
     {% if task.path -%}
     path="{{task.path}}"
-    {% endif -%}
-    {% if task.obj.pipename -%}
-    pipename={{task.obj.pipename}}
     {% endif -%}
     {% if task.obj.task_group -%}
     task_group="{{task.obj.task_group}}"
@@ -946,7 +929,7 @@ class FlowImport(object):
     def _get_tasks(self):
         tasks = {}
         for name, obj in inspect.getmembers(self.module_obj):
-            if inspect.isclass(obj) and type(obj) is luigi.task_register.Register:
+            if inspect.isclass(obj) and issubclass(obj, d6tflow.tasks.TaskData):
                 tasks[name] = obj
         # Convert to DotDict so that we can use .
         self.tasks = dotdict(tasks)

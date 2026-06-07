@@ -1,5 +1,4 @@
 import d6tflow
-import luigi
 import tensorflow as tf
 from d6tflow.targets.h5 import H5KerasTarget
 from d6tflow.tasks.h5 import TaskH5Keras
@@ -40,7 +39,7 @@ class TaskGetModel(TaskH5Keras):  # save dataframe as hdf5
         self.save(model)
 
 class TaskTrainModel(TaskH5Keras): # save output as hdf5
-    epochs = luigi.IntParameter(default=5)
+    epochs = d6tflow.IntParameter(default=5)
 
     def requires(self):
         return {'data':TaskGetTrainData(), 'model':TaskGetModel()}

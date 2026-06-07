@@ -1,11 +1,17 @@
-# luigi.tools.deps_tree
-
-from luigi.task import flatten
+from d6tflow.core import flatten
 import os
 import warnings
 import pathlib
 
-from luigi.tools.deps_tree import bcolors
+
+class bcolors:
+    '''
+    colored output for task status
+    '''
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    ENDC = '\033[0m'
+
 
 def print_tree(task, indent='', last=True, show_params=True, clip_params=False):
     '''

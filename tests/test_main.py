@@ -4,7 +4,6 @@ import stat
 import shutil
 import pandas as pd
 import warnings
-import luigi
 import d6tflow
 
 
@@ -95,7 +94,7 @@ class TestMain:
 
     @d6tflow.requires(Task2)
     class Task3(d6tflow.tasks.TaskPqPandas):
-        do_preprocess = luigi.BoolParameter(default=True)
+        do_preprocess = d6tflow.BoolParameter(default=True)
         def run(self):
             if self.do_preprocess:
                 pass
@@ -339,7 +338,7 @@ class TestMain:
         
     def test_params(self, cleanup):
         class TaskParam(d6tflow.tasks.TaskCache):
-            nrows = luigi.IntParameter(default=10)
+            nrows = d6tflow.IntParameter(default=10)
             def run(self):
                 self.save(pd.DataFrame({'a':range(self.nrows)}))
 
