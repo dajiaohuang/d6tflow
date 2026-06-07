@@ -52,6 +52,23 @@ If your tasks are already complete, they will not rerun. To force rerunning of a
     flow.run(forced_all_upstream=True, confirm=False) # use flow.reset() instead
 
 
+Run and Load in One Call
+------------------------------------------------------------
+
+For quick scripts and notebooks, ``d6tflow.runLoad`` builds a workflow, runs the task (with all upstream dependencies) and returns its loaded output in a single call - saving you from creating a ``Workflow`` object just to fetch one result.
+
+.. code-block:: python
+
+    # equivalent to: d6tflow.Workflow(TaskTrain, params).run() then outputLoad()
+    model = d6tflow.runLoad(TaskTrain, params={'do_preprocess': True})
+
+    # reset=True forces a rerun first (use after changing the task's code)
+    df = d6tflow.runLoad(TaskPreprocess, params={'do_preprocess': True}, reset=True)
+
+    # runIt runs without loading the output (same as runLoad(..., load=False))
+    d6tflow.runIt(TaskTrain)
+
+
 How is a task marked complete?
 ------------------------------------------------------------
 
@@ -99,30 +116,27 @@ By default, for a task to be complete, it checks if all dependencies are complet
 Debugging Failures
 ------------------------------------------------------------
 
-If a task fails, it will show the stack trace. You need to look further up in the stack trace to find the line that caused the error. You can also set breakpoints in the task obviously.
+If a task fails, d6tflow raises a ``RuntimeError`` chained to the original error that caused
+the failure (``... the direct cause of the following exception ...``). Read the FIRST
+traceback -- the line in your task's ``run()`` is the real cause. Example::
 
-::
-
-    File "tasks.py", line 37, in run => error is here
+    File "tasks.py", line 37, in run     <== the real error is here
         1/0
     ZeroDivisionError: division by zero
 
-    [...] => look further up to find error
-
-    ===== d6tflow Execution Summary =====
-    Scheduled 2 tasks of which:
-    * 1 complete ones were encountered:
-        - 1 TaskPreprocess(do_preprocess=True)
-    * 1 failed:
-        - 1 TaskTrain(do_preprocess=True)
-    This progress looks :( because there were failed tasks
-    ===== d6tflow Execution Summary =====
-
-     File 
-         raise RuntimeError('Exception found running flow, check trace')
+    The above exception was the direct cause of the following exception:
+    ...
     RuntimeError: Exception found running flow, check trace
 
-    => look further up to find error
+Tips:
+
+* The first traceback (the ``ZeroDivisionError`` above) points at your bug; the trailing
+  ``RuntimeError`` is just d6tflow reporting that the flow aborted.
+* Set a breakpoint in the task's ``run()`` and step through it.
+* Run a single task in isolation to debug it directly: ``TaskTrain().run()``
+  (note: this skips dependency resolution -- make sure upstream outputs already exist).
+* Turn on engine logging to see which task failed and timing:
+  ``d6tflow.enable_logging()`` (see "Logging" below).
 
 
 Rerun Tasks When You Make Changes
@@ -223,8 +237,41 @@ By default, the workflow execution summary is shown, because it shows important 
     # or
     flow.run(execution_summary=False) # at each run
 
-While typically not necessary, you can control change the log level to see additional log data. Default is ``WARNING``. It is a global setting, modify before you execute ``d6tflow.run()``.
+Logging
+------------------------------------------------------------
+
+d6tflow can log engine activity (task start/complete, timing, failures) and gives each task a
+contextual ``self.logger`` for logging from inside your own ``run()``. Logging is disabled by
+default. Quick start:
 
 .. code-block:: python
 
-    d6tflow.settings.log_level = 'WARNING' # 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'
+    import d6tflow
+    d6tflow.enable_logging()                 # INFO+ to stderr
+    d6tflow.enable_logging(level="DEBUG")    # also I/O, cached-skips, dependency detail
+    d6tflow.disable_logging()                # silence again
+
+See :doc:`logging` for the full guide, including ``self.logger``, log levels, and routing
+d6tflow records into your application's own loguru sinks.
+
+Cloud Storage
+------------------------------------------------------------
+
+By default task output is written under the local data directory (``d6tflow.set_dir()``). You can instead store output in cloud storage (S3, GCS, etc.) - d6tflow uses `fsspec <https://github.com/fsspec>`_ / `universal-pathlib <https://pypi.org/project/universal-pathlib/>`_ under the hood, so task code does not change.
+
+Install the relevant extra first, e.g. ``pip install d6tflow[gcs]`` or ``pip install d6tflow[s3]`` (``cloud-base`` for other fsspec protocols), then enable it once before running:
+
+.. code-block:: python
+
+    import d6tflow
+
+    # Google Cloud Storage shortcut
+    d6tflow.enable_gcs(bucket='my-bucket', prefix='myproject')
+
+    # any fsspec protocol (s3, gcs, dropbox, ...)
+    d6tflow.enable_cloud_storage(protocol='s3', bucket='my-bucket', prefix='myproject')
+
+    flow = d6tflow.Workflow(TaskTrain)
+    flow.run()   # task output now reads/writes under s3://my-bucket/myproject/
+
+``prefix`` is optional and behaves like a top-level folder within the bucket.

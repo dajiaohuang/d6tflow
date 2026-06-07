@@ -3,6 +3,7 @@ import pathlib
 import json
 
 from d6tflow import core
+from d6tflow.log import logger
 
 import d6tflow.targets
 import d6tflow.settings as settings
@@ -67,6 +68,7 @@ class TaskData(core.Task):
                 self.output().invalidate()
             else:
                 [t.invalidate() for t in self.output().values()]
+            logger.debug("invalidated {}", self.task_id)
         return True
 
 
@@ -175,6 +177,8 @@ class TaskData(core.Task):
         else:
             data = input.load()
 
+        logger.debug("loaded input for {} keys={}", self.task_id,
+                     list(keys) if keys is not None else None)
         return data
 
     def outputLoad(self, keys=None, as_dict=False, cached=False):
@@ -202,6 +206,9 @@ class TaskData(core.Task):
             for key in keys:
                 if not key in self.persist:
                     raise IndexError('Key name does not match')
+
+        logger.debug("loaded output for {} keys={}", self.task_id,
+                     keys if isinstance(keys, list) else [keys])
 
         if self.persist == ['data']:  # 1 data shortcut
             persist_data = self.output().load()
@@ -241,6 +248,7 @@ class TaskData(core.Task):
                     'Save dictionary needs to consistent with Task.persist')
             for k, v in data.items():
                 targets[k].save(v, **kwargs)
+        logger.debug("saved {} keys={}", self.task_id, list(self.persist))
 
     def _get_meta_path_with_format(self, task, format='pickle'):
         """Get metadata path for a given task and format"""

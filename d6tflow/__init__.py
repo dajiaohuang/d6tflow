@@ -1,6 +1,7 @@
 import warnings
 from d6tflow import core
 from d6tflow.core import flatten
+from d6tflow.log import logger, enable_logging, disable_logging
 from d6tflow.parameter import (
     Parameter,
     IntParameter, FloatParameter, BoolParameter,
@@ -136,12 +137,14 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
             else:
                 c = 'y'
             if c == 'y':
-                [t.invalidate(confirm=False) for t in invalidate]
+                for t in invalidate:
+                    logger.info("invalidating forced task: {}", t.task_id)
+                    t.invalidate(confirm=False)
             else:
                 return None
 
     execution_summary = execution_summary if execution_summary is not None else d6tflow.settings.execution_summary
-    opts = {**{'workers': workers, 'local_scheduler': True, 'log_level': d6tflow.settings.log_level}, **kwargs}
+    opts = {**{'workers': workers, 'local_scheduler': True}, **kwargs}
     if execution_summary:
         opts['detailed_summary'] = True
     result = core.build(tasks, **opts)
@@ -151,7 +154,7 @@ def run(tasks, forced=None, forced_all=False, forced_all_upstream=False, confirm
         success = result.scheduling_succeeded
     if abort and not success:
         raise RuntimeError(
-            'Exception found running flow, check trace. For more details see https://d6tflow.readthedocs.io/en/latest/run.html#debugging-failures')
+            'Exception found running flow, check trace. For more details see https://d6tflow.readthedocs.io/en/latest/run.html#debugging-failures') from getattr(result, 'first_exception', None)
 
     if execution_summary:
         if not isinstance(result, bool):
@@ -246,7 +249,9 @@ def invalidate_upstream(task, confirm=False):
     else:
         c = 'y'
     if c == 'y':
-        [t.invalidate(confirm=False) for t in tasks]
+        for t in tasks:
+            logger.info("invalidating upstream task: {}", t.task_id)
+            t.invalidate(confirm=False)
 
 
 def invalidate_downstream(task, task_downstream, confirm=False):
@@ -273,7 +278,9 @@ def invalidate_downstream(task, task_downstream, confirm=False):
     else:
         c = 'y'
     if c == 'y':
-        [t.invalidate(confirm=False) for t in tasks]
+        for t in tasks:
+            logger.info("invalidating downstream task: {}", t.task_id)
+            t.invalidate(confirm=False)
         return True
     else:
         return False

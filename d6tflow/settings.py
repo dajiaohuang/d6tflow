@@ -10,7 +10,7 @@ db=dirpath/'.d6tflow.json'
 
 check_dependencies = True
 check_crc = False
-log_level = 'WARNING'
+log_level = 'INFO'  # default level used by d6tflow.enable_logging(); see d6tflow/log.py
 execution_summary = True
 
 from d6tflow import core

@@ -11,7 +11,7 @@ setup(
     description='For data scientists and data engineers, d6tflow is a python library which makes building complex data science workflows easy, fast and intuitive.',
     long_description='d6tflow is a python library which makes it easier to build data workflows'
         'See https://github.com/d6t/d6tflow for details',
-    install_requires=['pandas', 'pyarrow', 'markdown', 'openpyxl'
+    install_requires=['pandas', 'pyarrow', 'markdown', 'openpyxl', 'loguru'
     ],
     extras_require={
         'dask': ['toolz','dask[dataframe]'],

@@ -49,6 +49,7 @@ User Guide
    transition
    tasks
    run
+   logging
    targets
    collaborate
    advtasksdyn

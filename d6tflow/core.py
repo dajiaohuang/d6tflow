@@ -9,10 +9,11 @@ The execution engine is **sequential**: the DAG is run in dependency order in-pr
 
 import re
 import json
+import time
 import hashlib
 import inspect
-import traceback
 
+from d6tflow.log import logger, TaskLogger
 from d6tflow.parameter import (
     Parameter,
     MissingParameterException,
@@ -223,6 +224,17 @@ class Task(metaclass=Register):
         """The task family (class name) of this task instance."""
         return self.__class__.__name__
 
+    @property
+    def logger(self):
+        """Contextual logger for task authors; auto-tagged with task identity.
+
+        Lives in the ``d6tflow`` namespace, so it is silent until
+        ``d6tflow.enable_logging()`` is called.
+        """
+        if getattr(self, "_logger", None) is None:
+            self._logger = TaskLogger(task_id=self.task_id, task_family=self.task_family)
+        return self._logger
+
     @classmethod
     def get_task_family(cls):
         """The task family (class name) for this class."""
@@ -430,9 +442,10 @@ def find_deps(task, upstream_task_family):
 class RunResult:
     """Small result object consumed by ``d6tflow.run``."""
 
-    def __init__(self, scheduling_succeeded, summary_text):
+    def __init__(self, scheduling_succeeded, summary_text, first_exception=None):
         self.scheduling_succeeded = scheduling_succeeded
         self.summary_text = summary_text
+        self.first_exception = first_exception
 
     def __bool__(self):
         return self.scheduling_succeeded
@@ -457,6 +470,7 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
     ran = []              # tasks executed this build
     already_complete = []  # tasks already complete
     failed = []           # tasks that failed (run error, failed dep, or missing external output)
+    first_exc = [None]    # first real exception raised by a task's run() (boxed for closure)
 
     def _process(task):
         tid = task.task_id
@@ -464,6 +478,7 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
             return visited[tid]
 
         if task.complete():
+            logger.debug("task skipped (already complete): {}", tid)
             already_complete.append(task)
             visited[tid] = True
             return True
@@ -474,6 +489,7 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
             if not _process(dep):
                 dep_ok = False
         if not dep_ok:
+            logger.error("task failed (dependency failed): {}", tid)
             failed.append(task)
             visited[tid] = False
             return False
@@ -485,10 +501,13 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
                 already_complete.append(task)
                 visited[tid] = True
                 return True
+            logger.warning("external task missing output: {}", tid)
             failed.append(task)
             visited[tid] = False
             return False
 
+        logger.info("task start: {} ({})", task.task_family, tid)
+        t0 = time.perf_counter()
         try:
             result = task.run()
             if inspect.isgenerator(result):
@@ -496,12 +515,15 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
                     failed.append(task)
                     visited[tid] = False
                     return False
-        except Exception:
-            traceback.print_exc()
+        except Exception as e:
+            logger.opt(exception=True).error("task failed: {}", tid)
+            if first_exc[0] is None:
+                first_exc[0] = e
             failed.append(task)
             visited[tid] = False
             return False
 
+        logger.info("task complete: {} in {:.3f}s", tid, time.perf_counter() - t0)
         ran.append(task)
         visited[tid] = True
         return True
@@ -512,6 +534,7 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
         try:
             next_requires = next(gen)
             while True:
+                logger.debug("generator yielded {} requires", len(flatten(next_requires)))
                 ok = True
                 for req in flatten(next_requires):
                     if not _process(req):
@@ -535,4 +558,8 @@ def build(tasks, workers=1, detailed_summary=False, **ignored):
             n=len(ran) + len(already_complete) + len(failed),
             r=len(ran), c=len(already_complete), f=len(failed))
     )
-    return RunResult(success, summary_text)
+    logger.info(
+        "run summary: scheduled={} ran={} complete={} failed={}",
+        len(ran) + len(already_complete) + len(failed),
+        len(ran), len(already_complete), len(failed))
+    return RunResult(success, summary_text, first_exception=first_exc[0])
