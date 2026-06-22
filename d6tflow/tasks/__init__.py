@@ -68,8 +68,20 @@ class TaskData(core.Task):
                 self.output().invalidate()
             else:
                 [t.invalidate() for t in self.output().values()]
+            self._invalidate_meta()
             logger.debug("invalidated {}", self.task_id)
         return True
+
+    def _invalidate_meta(self):
+        # Metadata (saveMeta/saveMetaJson) lives outside output(), so delete it here too.
+        meta_base = self._getpath('meta')
+        for ext in ('.pickle', '.json'):
+            path = self._make_path_cloud_compatible(meta_base.with_suffix(ext))
+            try:
+                path.unlink()
+                logger.debug("invalidated meta {}", path)
+            except FileNotFoundError:
+                pass  # no metadata was saved for this format
 
 
     def complete(self, cascade=True):
