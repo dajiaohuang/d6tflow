@@ -134,6 +134,32 @@ Library usage and reference https://d6tflow.readthedocs.io
 
 [Data science project starter templates](https://github.com/d6t/d6tflow-template)
 
+# Sharing data
+
+By default data gets written to `data/` which is gitignored to avoid writing large files to source control.
+
+To source control you can use git lfs to dvc.
+
+## Git lfs
+
+1. Install the LFS extension (once per machine)
+
+```
+  winget install GitHub.GitLFS   # or: choco install git-lfs
+  git lfs install                 # hooks LFS into your git config
+```
+
+2. adjust .gitignore to track `data/` and `reports/render`
+
+3. Tell LFS which files to track
+```shell
+git lfs track "data/**"
+git lfs track "reports/render/**"
+```
+
+4. commit `.gitattributes` and `.gitignore`
+
+
 ## Pro version
 
 Additional features:  
