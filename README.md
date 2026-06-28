@@ -155,6 +155,7 @@ To source control you can use git lfs to dvc.
 ```shell
 git lfs track "data/**"
 git lfs track "reports/render/**"
+git lfs track "*.ipynb"
 ```
 
 4. commit `.gitattributes` and `.gitignore`

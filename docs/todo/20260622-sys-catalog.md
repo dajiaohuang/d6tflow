@@ -44,6 +44,31 @@ All confirmed by the user during planning:
 2. **Semantics are AUTOMATIC, not author-declared.** No `describe={...}` boilerplate on tasks.
    We intercept `save()` where the **code and data are both present**, and derive meaning from
    them. Rejected a declarative `describe` attribute.
+   - **Recommended `field_semantics` keys** (free-form dict, but this is the standard set the
+     enricher targets): `definition`, `unit`, `period`, `segment`/`geography`, `data_type`
+     (rate | level | growth | ratio | index | count), `source`, `change_vs_prior`,
+     **`derivation`** (how the column was computed and the rule behind it),
+     **`role`** (`authoritative` | `reference` | `derived`), and **`caveats`** (free-text
+     gotchas).
+   - **Two gotcha *classes* the descriptor must capture** (the highest-value, hardest-to-spot
+     trust failures — stated as general principles, not tied to any one dataset):
+     1. *Derivation depends on `data_type`.* The correct transform for a column is determined
+        by what the column **is**. The same operation differs by type — e.g. a
+        period-over-period change of a **rate** is an additive difference (in the rate's own
+        units, e.g. percentage points), whereas for a **level** it is a growth ratio. A value
+        is meaningless without knowing which rule produced it and in what units. This is
+        recoverable from the `run()` source, so it belongs in `derivation`/`data_type`/`unit`.
+     2. *Authoritative-vs-reference role.* When multiple columns are each individually valid
+        but only one is the **canonical/authoritative** source for a concept (others being
+        derived cross-checks or alternates), a consumer must know which to use. This is the
+        most dangerous class because every candidate looks correct in isolation. Captured via
+        the per-field `role` key.
+3a. **Enrichment evidence includes existing trust prose.** The evidence bundle the enricher
+   reads is not just data + `run()` source — it also includes the task **docstring** and, when
+   present, the project's `docs/d6tflow-data.md` **Business rules** section. Hand-maintained
+   trust prose is where such gotchas conventionally live; the catalog should turn that prose
+   into structured, code-grounded `field_semantics` rather than depend on a human re-writing
+   it (and can flag drift when code and prose disagree).
 3. **Two-phase to stay fast + deterministic: capture → enrich.**
    - *Capture* (synchronous, in `save()`/`build()`; cheap; deterministic): an **evidence
      bundle** — provenance, structural profile, a bounded data **sample**, and the `run()`
