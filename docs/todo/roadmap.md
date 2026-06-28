@@ -28,10 +28,11 @@ deferred.
 
 ## Deferred cleanup (found during the audit, low priority)
 
-- **`docs/example.ipynb`** still uses the old `self.input().load()` idiom and shows stale
-  `LuigiRunResult` cell *outputs* (predates the luigi removal). Needs a full re-execution to
-  refresh, not a hand-edit - hence skipped.
+- **`docs/example.ipynb` / `docs/example-functional.ipynb`** — the stale `LuigiRunResult` /
+  "Luigi Execution Summary" cell *outputs* have been cleared (the cells now carry no output
+  rather than wrong output). Still open: `example.ipynb` uses the old `self.input().load()`
+  idiom, and both notebooks need a full re-execution to regenerate fresh (correct) outputs.
 
-- **`docs/source/run_legacy.rst`** still shows `luigi.*` (params, `luigi.worker.TaskException`).
-  It is the explicitly-legacy doc, so it was left as-is; decide whether to retire it or scrub
-  the luigi references to match the rest of the docs.
+- **`docs/source/run_legacy.rst`** — luigi references scrubbed (params → `d6tflow.*`, the
+  `luigi.worker.TaskException` note generalized, the Luigi summary block and luigi-docs link
+  replaced). Open question of whether to retire the legacy doc entirely remains.

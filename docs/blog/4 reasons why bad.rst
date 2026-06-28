@@ -138,13 +138,10 @@ Below is a stylized example of a machine learning flow which is expressed as a D
     d6tflow.run(TaskTrain())
 
     '''
-    ===== Luigi Execution Summary =====
-
-    Scheduled 3 tasks of which:
-    * 3 ran successfully:
-        - 1 TaskGetData()
-        - 1 TaskPreprocess(do_preprocess=True)
-        - 1 TaskTrain(do_preprocess=True)
+    Scheduled 3 tasks
+    * 3 ran successfully
+    * 0 complete
+    * 0 failed
     '''
 
     # Load task output to pandas dataframe and model object for model evaluation

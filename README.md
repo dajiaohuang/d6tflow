@@ -100,12 +100,10 @@ flow.reset_upstream(confirm=False) # DEMO ONLY: force re-run
 flow.run()  # execute model training including all dependencies
 
 '''
-===== Execution Summary =====
-Scheduled 2 tasks of which:
-* 2 ran successfully:
-    - 1 GetData()
-    - 1 ModelTrain(model=ols)
-This progress looks :) because there were no failed tasks or missing dependencies
+Scheduled 2 tasks
+* 2 ran successfully
+* 0 complete
+* 0 failed
 '''
 
 scores = flow.outputLoadMeta()  # load model scores
@@ -170,12 +168,11 @@ Additional features:
 * Integrations for cloud execution (athena)
 * Workflow deployment and scheduling
 
-[Schedule demo](https://calendly.com/databolt/30min)
+[Schedule demo](https://calendar.app.google/FkNWJE9u7QuowfH89)
 
 ## Accelerate Data Science
 
 Check out other d6t libraries, including  
-* push/pull data: quickly get and share data files like code
 * import data: quickly ingest messy raw CSV and XLS files to pandas, SQL and more
 * join data: quickly combine multiple datasets using fuzzy joins
 
@@ -183,7 +180,7 @@ https://github.com/d6t/d6t-python
 
 ## Get notified
 
-`d6tflow` is in active development. Join the [databolt blog](http://blog.databolt.tech) for the latest announcements and tips+tricks.
+Join the [databolt blog](http://blog.databolt.tech) for the latest announcements and tips+tricks.
 
 ## How To Contribute
 

@@ -14,14 +14,14 @@ Running a task will automatically run all the upstream dependencies. Before runn
 Running Multiple Tasks as Workflows
 ------------------------------------------------------------
 
-To run all tasks in a workflow, run the downstream task you want to complete. It will check if all the upstream dependencies are complete and if not it will run them intelligently for you.
+To run all tasks in a workflow, build a ``Workflow`` for the downstream task you want to complete and call ``flow.run()``. It will check if all the upstream dependencies are complete and if not it will run them intelligently for you.
 
 .. code-block:: python
 
-    d6tflow.run(TaskTrain()) # single task
-    d6tflow.run([TaskPreprocess(),TaskTrain()]) # multiple tasks
+    flow = d6tflow.Workflow(TaskTrain)
+    flow.run() # runs TaskTrain and all upstream dependencies
 
-If you get ``Error: luigi.worker.TaskException: Can not schedule non-task <class 'TaskTrain'>``, make sure you run an instantiated task object ``d6tflow.run(TaskTrain())`` not just the class ``d6tflow.run(TaskTrain)``.
+If a task fails to schedule, make sure you run an instantiated task object ``d6tflow.run(TaskTrain())`` not just the class ``d6tflow.run(TaskTrain)``.
 
 How is a task marked complete?
 ------------------------------------------------------------
@@ -81,14 +81,10 @@ If a task fails, it will show the stack trace. You need to look further up in th
 
     [...] => look further up to find error
 
-    ===== Luigi Execution Summary =====
-    Scheduled 2 tasks of which:
-    * 1 complete ones were encountered:
-        - 1 TaskPreprocess(do_preprocess=True)
-    * 1 failed:
-        - 1 TaskTrain(do_preprocess=True)
-    This progress looks :( because there were failed tasks
-    ===== Luigi Execution Summary =====
+    Scheduled 2 tasks
+    * 0 ran successfully
+    * 1 complete
+    * 1 failed
 
      File
          raise RuntimeError('Exception found running flow, check trace')
@@ -144,17 +140,17 @@ For d6tflow to intelligently figure out which tasks to rerun, the parameter has 
     # no parameter dependence
 
     class TaskPreprocess(d6tflow.tasks.TaskCachePandas):  # save data in memory
-        do_preprocess = luigi.BoolParameter(default=True) # parameter for preprocessing yes/no
+        do_preprocess = d6tflow.BoolParameter(default=True) # parameter for preprocessing yes/no
 
     class TaskTrain(d6tflow.tasks.TaskPickle):
         # pass parameter upstream
-        do_preprocess = luigi.BoolParameter(default=True)
+        do_preprocess = d6tflow.BoolParameter(default=True)
 
         def requires(self):
             # pass parameter upstream
             return TaskPreprocess(do_preprocess=self.do_preprocess)
 
-See [luigi docs for handling parameter inheritance](https://luigi.readthedocs.io/en/stable/api/luigi.util.html#using-inherits-and-requires-to-ease-parameter-pain)
+See the ``@d6tflow.requires`` / ``@d6tflow.inherits`` decorators for handling parameter inheritance (:doc:`advparam`).
 
 Default Parameter Values in Config
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -164,7 +160,7 @@ As an alternative to inheriting parameters, you can define defaults in a config 
 .. code-block:: python
 
     class TaskPreprocess(d6tflow.tasks.TaskCachePandas):
-        do_preprocess = luigi.BoolParameter(default=cfg.do_preprocess) # store default in config
+        do_preprocess = d6tflow.BoolParameter(default=cfg.do_preprocess) # store default in config
 
 
 Avoid repeating parameters when referring to tasks
