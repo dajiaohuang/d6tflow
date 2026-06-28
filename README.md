@@ -50,6 +50,23 @@ If you are behind an enterprise firewall, you can also clone/download the repo a
 
 To install latest DEV `pip install git+git://github.com/d6t/d6tflow.git` or upgrade `pip install git+git://github.com/d6t/d6tflow.git -U --no-deps`
 
+## Claude Code plugin
+
+Build d6tflow workflows faster with AI assistance. The [d6tflow Claude Code plugin](https://github.com/d6t/d6tflow-claude-plugin) adds a skill that auto-activates when you edit pipeline files (`tasks.py`, `flow.py`, `run.py`) plus slash commands to scaffold and manage projects:
+
+* `/d6tflow:init-project` – scaffold a new d6tflow project from templates
+* `/d6tflow:init-gitlfs` – set up Git LFS to version data outputs (see [Sharing data](#sharing-data))
+* `/d6tflow:d6tflow` – manually invoke the skill (optional; it auto-activates on pipeline files)
+
+Install in [Claude Code](https://claude.com/claude-code):
+
+```
+/plugin marketplace add d6t/d6tflow-claude-plugin
+/plugin install d6tflow@d6tflow
+```
+
+See the [plugin repo](https://github.com/d6t/d6tflow-claude-plugin) for more details.
+
 ## Example: Model Comparison
 
 Below is an introductory example that gets training data, trains two models and compares their performance.  
